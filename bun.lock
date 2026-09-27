@@ -133,7 +133,7 @@
     },
     "harnesses/pi/agent/packages/pi-exec-command": {
       "name": "@luan.sh/pi-exec-command",
-      "version": "0.3.8",
+      "version": "0.3.9",
       "dependencies": {
         "@luan.sh/pi-code-mode": "workspace:*",
         "@luan.sh/pi-libactions": "workspace:*",

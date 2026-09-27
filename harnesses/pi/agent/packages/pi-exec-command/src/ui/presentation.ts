@@ -239,8 +239,9 @@ function commandFromFallback(
 
 class ExecPresentation {
 	private readonly transcript: CommandTranscript | ToolActivity;
-	/** Monotonic stream revision; output text and retention remain in pi-libtui. */
+	/** Repaints must not replay unchanged PTY output and schedule another repaint. */
 	private outputRevision = 0;
+	private revisionOutput: string | undefined;
 	private execDetails: ExecToolPresentationDetails | undefined;
 	private readonly continuationOutput = new Map<string, string>();
 	private latestContinuation: ExecToolPresentationDetails | undefined;
@@ -268,7 +269,7 @@ class ExecPresentation {
 		if (details.outcome.status !== "running") this.stopProcessUpdates();
 		this.output = details.progress.output;
 		if (details.arguments.kind === "exec_command") this.execDetails = details;
-		const revision = this.nextOutputRevision();
+		const revision = this.nextOutputRevision(details.progress.output);
 		this.transcript =
 			details.arguments.kind === "exec_command"
 				? new CommandTranscript({
@@ -304,7 +305,9 @@ class ExecPresentation {
 			this.syncProcess(details, processes);
 			if (this.latestContinuation && this.transcript instanceof CommandTranscript) {
 				const continuation = continuationDetails(details, this.latestContinuation, this.output);
-				this.transcript.update(commandView(continuation, expanded, hostError, live, this.nextOutputRevision()));
+				this.transcript.update(
+					commandView(continuation, expanded, hostError, live, this.nextOutputRevision(continuation.progress.output)),
+				);
 				return;
 			}
 		}
@@ -314,10 +317,12 @@ class ExecPresentation {
 			this.latestContinuation = details;
 			this.output = this.mergedOutput();
 			const continuation = continuationDetails(this.execDetails, details, this.output);
-			this.transcript.update(commandView(continuation, expanded, hostError, live, this.nextOutputRevision()));
+			this.transcript.update(
+				commandView(continuation, expanded, hostError, live, this.nextOutputRevision(continuation.progress.output)),
+			);
 			return;
 		}
-		const revision = this.nextOutputRevision();
+		const revision = this.nextOutputRevision(details.progress.output);
 		if (this.transcript instanceof CommandTranscript) {
 			this.transcript.update(commandView(details, expanded, hostError, live, revision));
 		} else {
@@ -359,7 +364,13 @@ class ExecPresentation {
 		this.execDetails = snapshotDetails(this.execDetails, snapshot);
 		this.output = this.mergedOutput();
 		this.transcript.update(
-			commandView(this.execDetails, this.expanded, this.hostError, this.live, this.nextOutputRevision()),
+			commandView(
+				this.execDetails,
+				this.expanded,
+				this.hostError,
+				this.live,
+				this.nextOutputRevision(this.execDetails.progress.output),
+			),
 		);
 		if (snapshot.state === "exited") this.stopProcessUpdates();
 	}
@@ -370,8 +381,11 @@ class ExecPresentation {
 		this.subscribedSessionId = undefined;
 	}
 
-	private nextOutputRevision(): number {
-		this.outputRevision += 1;
+	private nextOutputRevision(output: string): number {
+		if (output !== this.revisionOutput) {
+			this.revisionOutput = output;
+			this.outputRevision += 1;
+		}
 		return this.outputRevision;
 	}
 

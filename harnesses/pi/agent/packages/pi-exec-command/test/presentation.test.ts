@@ -628,6 +628,53 @@ describe("exec tool presentation", () => {
 		expect(rendered).not.toContain("progress 10%");
 	});
 
+	test.each([false, true])("TTY result redraws settle after replay (live=%s)", async (executionStarted) => {
+		const tool = createExecCommandTool({} as never, TEST_EXEC_COMMAND_PREPARATION_RUNTIME);
+		const args = { cmd: "progress", tty: true };
+		const result = (output: string) =>
+			createExecToolResult({
+				tool: "exec_command",
+				phase: "final",
+				arguments: normalizeExecCommandArguments(args, "/tmp", "/bin/zsh"),
+				command: args.cmd,
+				result: { chunk_id: "tty", wall_time_seconds: 0.1, output, exit_code: 0, output_truncated: false },
+			});
+		let current = result("old");
+		let component: ReturnType<NonNullable<typeof tool.renderResult>> | undefined;
+		let invalidations = 0;
+		const redraw = () => {
+			component = tool.renderResult?.(
+				current,
+				{ expanded: false, isPartial: false },
+				theme,
+				context(args, component, {
+					executionStarted,
+					isPartial: false,
+					invalidate: () => {
+						// Bound a broken feedback loop so the regression fails without starving the test runner.
+						if (++invalidations < 8) redraw();
+					},
+				}),
+			);
+		};
+		redraw();
+		for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+		expect(invalidations).toBe(1);
+		expect(component?.render(80).join("\n")).toContain("old");
+		current = result("new");
+		redraw();
+		for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+		expect(invalidations).toBeLessThan(8);
+		expect(component?.render(80).join("\n")).toContain("new");
+		expect(component?.render(80).join("\n")).not.toContain("old");
+		for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+		const settled = invalidations;
+		redraw();
+		for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+		expect(invalidations).toBe(settled);
+		if (component && "dispose" in component && typeof component.dispose === "function") component.dispose();
+	});
+
 	test("preserves a TTY emulator when partial output becomes a truncated cumulative tail", () => {
 		const tool = createExecCommandTool({} as never, TEST_EXEC_COMMAND_PREPARATION_RUNTIME);
 		const args = { cmd: "progress", tty: true };
