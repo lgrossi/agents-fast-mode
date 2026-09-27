@@ -21,6 +21,9 @@ import type { ProcessTerminalStore } from "./process-store.ts";
 type HostTheme = Parameters<typeof tuiTheme>[0];
 type UIContext = ExtensionContext["ui"];
 
+const PROCESS_WIDGET_DELAY_MS = 3_000;
+const PROCESS_WIDGET_MIN_VISIBLE_MS = 3_000;
+
 interface ProcessTarget {
 	readonly process: ExecProcessSnapshot;
 	readonly row: number;
@@ -42,6 +45,8 @@ export class ProcessWidget {
 	private motion: MotionMount | undefined;
 	private tui: TUI | undefined;
 	private registered = false;
+	private visibilityTimer: ReturnType<typeof setTimeout> | undefined;
+	private readonly visible = new Map<number, { process: ExecProcessSnapshot; shownAtMs: number }>();
 	private lastStatus: string | undefined;
 	private animation: Readonly<ActivityAnimationOverrides>;
 	private syntaxReadyRequested = false;
@@ -78,12 +83,15 @@ export class ProcessWidget {
 
 	update(): void {
 		if (!this.uiCtx) return;
-		const running = runningProcesses(this.source.list());
-		if (running.length === 0) {
-			this.clear();
+		const now = Date.now();
+		this.updateVisible(now);
+		if (this.visible.size === 0) {
+			this.clearWidget();
 			return;
 		}
-		const status = `${running.length} running process${running.length === 1 ? "" : "es"}`;
+		const running = this.visibleProcesses().filter(({ state }) => state === "running");
+		const status =
+			running.length > 0 ? `${running.length} running process${running.length === 1 ? "" : "es"}` : undefined;
 		if (status !== this.lastStatus) {
 			this.uiCtx.setStatus("processes", status);
 			this.lastStatus = status;
@@ -106,6 +114,36 @@ export class ProcessWidget {
 			this.registered = true;
 		}
 		this.syncMotion();
+		this.tui?.requestRender();
+	}
+
+	private updateVisible(now: number): void {
+		clearTimeout(this.visibilityTimer);
+		this.visibilityTimer = undefined;
+		const snapshots = this.source.list();
+		let nextUpdate = Infinity;
+		for (const [id, entry] of this.visible) {
+			const process = snapshots.find((snapshot) => snapshot.id === id);
+			if (process) entry.process = process;
+			if (process?.state === "running") continue;
+			const expiresAt = entry.shownAtMs + PROCESS_WIDGET_MIN_VISIBLE_MS;
+			if (now >= expiresAt) this.visible.delete(id);
+			else nextUpdate = Math.min(nextUpdate, expiresAt);
+		}
+		for (const process of snapshots) {
+			if (process.state !== "running" || this.visible.has(process.id)) continue;
+			const showAt = process.startedAtMs + PROCESS_WIDGET_DELAY_MS + 1;
+			if (now >= showAt) this.visible.set(process.id, { process, shownAtMs: now });
+			else nextUpdate = Math.min(nextUpdate, showAt);
+		}
+		if (Number.isFinite(nextUpdate)) {
+			this.visibilityTimer = setTimeout(() => this.update(), nextUpdate - now);
+			this.visibilityTimer.unref();
+		}
+	}
+
+	private visibleProcesses(): ExecProcessSnapshot[] {
+		return Array.from(this.visible.values(), ({ process }) => process);
 	}
 
 	dispose(): void {
@@ -116,21 +154,24 @@ export class ProcessWidget {
 
 	private render(theme: HostTheme, width: number, now = Date.now()): string[] {
 		const colors = tuiTheme(theme);
-		const allRunning = runningProcesses(this.source.list());
-		const running = allRunning.slice(0, 4);
-		this.interaction.setTargets(
-			running.map((process, index) => ({ process, row: index + 1, width: Math.max(0, width) })),
-		);
+		const processes = this.visibleProcesses();
+		const runningCount = processes.filter(({ state }) => state === "running").length;
+		const rows = processes.slice(0, 4);
+		this.interaction.setTargets(rows.map((process, index) => ({ process, row: index + 1, width: Math.max(0, width) })));
 		const hoveredId = this.interaction.hoveredTarget()?.process.id;
 		return [
-			`${colors.fg("accent", `${icon("terminal")} Processes`)} ${colors.fg("text.muted", `· ${allRunning.length} running`)}`,
-			...running.map((process) => {
-				const elapsed = formatDuration((now - process.startedAtMs) / 1_000);
+			`${colors.fg("accent", `${icon("terminal")} Processes`)} ${colors.fg("text.muted", `· ${runningCount} running`)}`,
+			...rows.map((process) => {
+				const elapsed = formatDuration(((process.finishedAtMs ?? now) - process.startedAtMs) / 1_000);
+				const state = process.state === "running" ? elapsed : `${elapsed} · exited ${process.exitCode ?? ""}`;
 				const preview = this.preview(process, width);
-				const marker = activityFrame(colors, "", now - process.startedAtMs, this.animation).marker;
+				const marker =
+					process.state === "running"
+						? activityFrame(colors, "", now - process.startedAtMs, this.animation).marker
+						: "";
 				const command = dimmedCommand(colors, preview.commandSpans, process.id === hoveredId);
 				return truncateToWidth(
-					`${marker ? `${marker} ` : ""}${colors.fg(process.id === hoveredId ? "accent" : "info", `#${process.id}`)} ${colors.fg("text.muted", `${elapsed} ·`)} ${command}${preview.outputLine ? colors.fg("text.muted", ` · ${preview.outputLine}`) : ""}`,
+					`${marker ? `${marker} ` : ""}${colors.fg(process.id === hoveredId ? "accent" : "info", `#${process.id}`)} ${colors.fg("text.muted", `${state} ·`)} ${command}${preview.outputLine ? colors.fg("text.muted", ` · ${preview.outputLine}`) : ""}`,
 					width,
 				);
 			}),
@@ -172,7 +213,7 @@ export class ProcessWidget {
 	}
 
 	private syncMotion(): void {
-		const running = runningProcesses(this.source.list()).length > 0;
+		const running = this.visibleProcesses().some(({ state }) => state === "running");
 		if (this.tui && running && !this.motion) this.motion = mountConfiguredAnimation(this.tui, this.animation);
 		if (!running && this.motion) {
 			this.motion.dispose();
@@ -187,6 +228,13 @@ export class ProcessWidget {
 	}
 
 	private clear(): void {
+		clearTimeout(this.visibilityTimer);
+		this.visibilityTimer = undefined;
+		this.visible.clear();
+		this.clearWidget();
+	}
+
+	private clearWidget(): void {
 		this.motion?.dispose();
 		this.motion = undefined;
 		this.tui = undefined;
@@ -220,10 +268,6 @@ function shellSyntaxPath(shell: string): string {
 		?.toLowerCase()
 		.replace(/\.exe$/u, "");
 	return basename === "bash" || basename === "fish" || basename === "zsh" ? `script.${basename}` : "script.sh";
-}
-
-function runningProcesses(snapshots: readonly ExecProcessSnapshot[]): readonly ExecProcessSnapshot[] {
-	return snapshots.filter(({ state }) => state === "running");
 }
 
 function lastOutputLine(output: string, width: number): string {

@@ -116,9 +116,11 @@ native bridge stays authoritative for input, resize, interrupt, termination,
 exit, and reaping.
 
 The original `exec_command` transcript row stays live. When it is offscreen, a
-compact above-editor widget and a `processes` status item show the running
-processes; both disappear when none remain. Clicking a process in the widget
-opens it in the hub.
+compact above-editor widget and a `processes` status item show processes that
+have been running for more than three seconds. Each visible row stays for at
+least three seconds, showing its exit state if it finishes during that window.
+The status clears when no displayed processes are running; the widget clears
+when the last row expires. Clicking a process in the widget opens it in the hub.
 
 Process list keys:
 
