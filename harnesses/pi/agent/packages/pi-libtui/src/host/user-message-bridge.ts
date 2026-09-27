@@ -1,4 +1,5 @@
 import { UserMessageComponent } from "@earendil-works/pi-coding-agent";
+import { sliceByColumn, stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import { getTuiAppearance } from "../appearance.ts";
 import { nativeSurfaceCap } from "../decoration/powerline-pill.ts";
 
@@ -33,41 +34,47 @@ export function installUserMessageBridge(): () => void {
 	const handleMouse = prototype.handleMouse;
 	const mouseDescriptor = Object.getOwnPropertyDescriptor(prototype, "handleMouse");
 	let leases = 0;
+	const layouts = new WeakMap<UserMessageComponent, { width: number; nativeWidth: number }>();
 	const enabled = () => leases > 0 && getTuiAppearance().userMessageBubbles;
 	const wrappedRender: typeof render = function (this: UserMessageComponent, width) {
+		layouts.delete(this);
 		if (!enabled()) return render.call(this, width);
 		const innerWidth = bubbleWidth(width);
 		if (innerWidth < 4) return render.call(this, width);
-		const gutter = " ".repeat(width - innerWidth);
 		// Preserve native markdown, background, transformers, and OSC message markers.
 		const lines = render.call(this, innerWidth - 2).slice(1, -1);
 		if (lines.length === 0) return [];
-		const nerdFont = getTuiAppearance().iconPack === "nerd-fonts";
-		const result = lines.map((line, index) => {
-			const single = lines.length === 1;
-			const first = index === 0;
-			const last = index === lines.length - 1;
-			// Powerline has semicircle caps but no quarter-circle corners; use diagonal corners for multiline bubbles.
-			const left = nerdFont ? (single ? "" : first ? "" : last ? "" : "█") : "█";
-			const right = nerdFont ? (single ? "" : first ? "" : last ? "" : "█") : "█";
-			return gutter + nativeSurfaceCap(line, left) + line + nativeSurfaceCap(line, right);
+		// Measure rendered text, not markdown source; retain one space before the right cap.
+		const fittedWidth = Math.min(
+			innerWidth,
+			lines.reduce((maximum, line) => Math.max(maximum, visibleWidth(stripTerminalSequences(line).trimEnd()) + 3), 4),
+		);
+		layouts.set(this, { width: fittedWidth, nativeWidth: innerWidth - 2 });
+		const gutter = " ".repeat(width - fittedWidth);
+		const result = lines.map((line) => {
+			// Crop only native trailing padding; keep its original wrapping and mouse layout.
+			return (
+				gutter + nativeSurfaceCap(line, "█") + sliceByColumn(line, 0, fittedWidth - 2) + nativeSurfaceCap(line, "█")
+			);
 		});
+		result.unshift(gutter + nativeSurfaceCap(lines[0]!, "▄".repeat(fittedWidth)));
+		result.push(gutter + nativeSurfaceCap(lines[lines.length - 1]!, "▀".repeat(fittedWidth)));
 		result[0] = `\x1b]133;A\x07${result[0]}`;
 		result[result.length - 1] += "\x1b]133;B\x07\x1b]133;C\x07";
 		return result;
 	};
 	const wrappedMouse: typeof handleMouse = function (this: UserMessageComponent, event) {
 		if (!enabled()) return handleMouse.call(this, event);
-		const width = bubbleWidth(event.width);
+		const layout = layouts.get(this);
+		const width = layout?.width ?? bubbleWidth(event.width);
 		if (width < 4) return handleMouse.call(this, event);
 		const x = event.x - (event.width - width) - 1;
 		if (x < 0 || x >= width - 2) return undefined;
+		if (event.y === 0 || event.y === event.height - 1) return undefined;
 		return handleMouse.call(this, {
 			...event,
 			x,
-			y: event.y + 1,
-			height: event.height + 2,
-			width: width - 2,
+			width: layout?.nativeWidth ?? width - 2,
 		});
 	};
 	const bridge: UserMessageBridge = {

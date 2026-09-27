@@ -208,11 +208,10 @@ defaults:
 
 Enable **User message bubbles** under **UI → TUI** in `/xsettings`, or set
 `pi-libtui.userMessageBubbles = true` under `[appearance]` in `xsettings.toml`.
-Messages use up to 75% of the transcript width, capped at 60 columns, with
-left-aligned text and no vertical padding. Single-line bubbles use rounded
-Powerline caps with the Nerd Font icon pack; multiline bubbles use filled
-diagonal corners and solid sides. Without Nerd Fonts, bubbles use square edges.
-Neither style adds outline or padding rows.
+Messages shrink to fit their rendered text, using up to 75% of the transcript
+width, capped at 60 columns, with left-aligned text. All bubbles use solid sides
+and half-block top/bottom edges for a little vertical breathing room, regardless
+of the icon pack.
 Panes narrower than 40 columns use the available width. Changes
 apply live to existing messages; markdown, annotations, and terminal message
 markers remain native. Without Xsettings the setting defaults to off.

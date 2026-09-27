@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { initTheme, UserMessageComponent } from "@earendil-works/pi-coding-agent";
-import { visibleWidth } from "@earendil-works/pi-tui";
+import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
 import { configureTuiAppearance, DEFAULT_TUI_APPEARANCE } from "../src/appearance.ts";
 import { backgroundAnsiAtColumn } from "../src/decoration/powerline-pill.ts";
 import { installUserMessageBridge } from "../src/host/user-message-bridge.ts";
@@ -12,7 +12,7 @@ afterEach(() => {
 	configureTuiAppearance(DEFAULT_TUI_APPEARANCE);
 });
 
-test("compact rounded bubbles toggle live without changing native messages", () => {
+test("compact half-block bubbles toggle live without changing native messages", () => {
 	const message = new UserMessageComponent("Hello **world** — 你好 👋");
 	const native = message.render(100);
 	const remove = installUserMessageBridge();
@@ -20,11 +20,13 @@ test("compact rounded bubbles toggle live without changing native messages", () 
 	expect(message.render(100)).toEqual(native);
 	configureTuiAppearance({ userMessageBubbles: true, iconPack: "nerd-fonts" });
 	const lines = message.render(100);
-	expect(lines).toHaveLength(1);
-	expect(lines[0]).toContain("");
-	expect(lines[0]).toContain("");
-	expect(lines[0]).toContain(`\x1b]133;A\x07${" ".repeat(40)}`);
+	expect(lines).toHaveLength(3);
+	expect(lines[0]).toContain("▄");
+	expect(lines[2]).toContain("▀");
+	expect(stripTerminalSequences(lines[1]!).trimStart()).toBe("█ Hello world — 你好 👋 █");
 	expect(visibleWidth(lines[0]!)).toBe(100);
+	configureTuiAppearance({ iconPack: "unicode" });
+	expect(message.render(100)).toEqual(lines);
 	configureTuiAppearance({ userMessageBubbles: false });
 	expect(message.render(100)).toEqual(native);
 	configureTuiAppearance({ userMessageBubbles: true });
@@ -32,28 +34,46 @@ test("compact rounded bubbles toggle live without changing native messages", () 
 	expect(message.render(100)).toEqual(native);
 });
 
-test.each([20, 39, 40, 81, 120])("wraps within 60 columns without vertical padding at %i", (width) => {
+test.each([
+	["ship", 8],
+	["**ship**", 8],
+	["你好 👋", 11],
+	["first\n\nsecond", 10],
+] as const)("fits the rendered content of %s", (text, expectedWidth) => {
+	const message = new UserMessageComponent(text);
+	disposers.push(installUserMessageBridge());
+	configureTuiAppearance({ userMessageBubbles: true, iconPack: "nerd-fonts" });
+	const lines = message.render(100).map(stripTerminalSequences);
+	for (const line of lines) {
+		expect(visibleWidth(line)).toBe(100);
+		expect(visibleWidth(line.trimStart())).toBe(expectedWidth);
+	}
+});
+
+test.each([20, 39, 40, 81, 120])("wraps within 60 columns with half-block edges at %i", (width) => {
 	const message = new UserMessageComponent("Wide 字 and words with **emphasis**. ".repeat(12));
 	const bubbleWidth = Math.min(60, width < 40 ? width : Math.floor(width * 0.75));
-	const expectedHeight = message.render(bubbleWidth - 2).length - 2;
+	const native = message.render(bubbleWidth - 2);
+	const expectedHeight = native.length;
 	disposers.push(installUserMessageBridge());
 	configureTuiAppearance({ userMessageBubbles: true, iconPack: "nerd-fonts" });
 	const lines = message.render(width);
 	expect(lines).toHaveLength(expectedHeight);
+	expect(lines.slice(1, -1).map((line) => stripTerminalSequences(line).trim().slice(1, -1).trimEnd())).toEqual(
+		native.slice(1, -1).map((line) => stripTerminalSequences(line).trimEnd()),
+	);
 	expect(lines.every((line) => visibleWidth(line) <= width)).toBe(true);
-	expect(lines[0]).toContain("");
-	expect(lines[0]).toContain("");
+	expect(lines[0]).toContain("▄");
 	expect(lines[1]).toContain("█");
-	const gutter = width - bubbleWidth;
+	const gutter = width - visibleWidth(stripTerminalSequences(lines[1]!).trimStart());
 	const bodyBackground = backgroundAnsiAtColumn(lines[1]!, gutter + 2);
 	expect(bodyBackground).not.toBe("\x1b[49m");
-	for (const line of lines) {
+	for (const line of lines.slice(1, -1)) {
 		for (const column of [gutter + 1, gutter + 2, width - 2]) {
 			expect(backgroundAnsiAtColumn(line, column)).toBe(bodyBackground);
 		}
 	}
-	expect(lines.at(-1)).toContain("");
-	expect(lines.at(-1)).toContain("");
+	expect(lines.at(-1)).toContain("▀");
 	expect(lines.at(-1)).toContain("\x1b]133;B\x07\x1b]133;C\x07");
 });
 
@@ -64,10 +84,10 @@ test("duplicate installs release independently", () => {
 	const second = installUserMessageBridge();
 	disposers.push(first, second);
 	configureTuiAppearance({ userMessageBubbles: true, iconPack: "nerd-fonts" });
-	expect(message.render(80)).toHaveLength(1);
+	expect(message.render(80)).toHaveLength(3);
 	first();
 	first();
-	expect(message.render(80)).toHaveLength(1);
+	expect(message.render(80)).toHaveLength(3);
 	second();
 	expect(message.render(80)).toEqual(native);
 });
