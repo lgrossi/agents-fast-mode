@@ -93,6 +93,10 @@ binary at `high` detail, attached as an image, and its text becomes a
 the plain path and Pi shows a warning `Could not attach <path>: <message>`.
 Pending pills are cleared on session start and shutdown.
 
+Submitted image tags render as numbered pills in user messages, including
+resumed sessions. This is display-only: stored tags and model attachments stay
+unchanged. Tags inside Markdown code remain literal.
+
 ## Codex-style image labels
 
 Before each request is sent to the provider, user messages whose first text

@@ -15,9 +15,15 @@ import { TuiState } from "./runtime/state.ts";
 import { createFooter } from "./ui/footer.ts";
 import { renderEditorHighlights } from "./ui/highlights.ts";
 import { installCustomEditor } from "./ui/pi-custom-editor.ts";
+import { projectFileTranscript } from "./ui/transcript-files.ts";
 
 export default function tuiExtension(pi: ExtensionAPI): void {
 	const state = new TuiState();
+	pi.registerMarkdownTransformer((markdown, context) =>
+		context.messageType === "user" && activeContext
+			? projectFileTranscript(markdown, context.availableWidth, activeContext.ui.theme)
+			: markdown,
+	);
 	let removeEditor: (() => void) | undefined;
 	let removeMotion: (() => void) | undefined;
 	let activeSession: object | undefined;

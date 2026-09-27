@@ -1,4 +1,4 @@
-import { type ExtensionAPI, resizeImage } from "@earendil-works/pi-coding-agent";
+import { type ExtensionAPI, type ExtensionContext, resizeImage } from "@earendil-works/pi-coding-agent";
 import { registerViewImageCodeModeAdapter } from "./code-mode-adapter.ts";
 import { ImageAttachmentStore } from "./core/attachments.ts";
 import { createImageClamp, MAX_IMAGE_DIMENSION } from "./image-limits.ts";
@@ -7,6 +7,7 @@ import { labelNativeImageAttachments } from "./native-attachments.ts";
 import { runViewImageBinary } from "./native/view-image.ts";
 import { transformPendingImageAttachments } from "./runtime/attachments.ts";
 import { installImageAttachmentSession } from "./runtime/editor-attachments.ts";
+import { projectImageTranscript } from "./runtime/transcript-attachments.ts";
 import { configureViewImageToolForModel, createViewImageTool } from "./tools/view-image/definition.ts";
 
 export default function viewImageExtension(pi: ExtensionAPI): void {
@@ -20,11 +21,18 @@ export default function viewImageExtension(pi: ExtensionAPI): void {
 		return resized?.wasResized ? { type: "image", data: resized.data, mimeType: resized.mimeType } : null;
 	});
 	let removeImagePasteSession: (() => void) | undefined;
+	let transcriptContext: ExtensionContext | undefined;
+	pi.registerMarkdownTransformer((markdown, context) =>
+		context.messageType === "user" && transcriptContext
+			? projectImageTranscript(markdown, context.availableWidth, transcriptContext.ui.theme)
+			: markdown,
+	);
 	pi.registerTool(tool);
 	pi.on("session_start", (_event, context) => {
 		configureViewImageToolForModel(tool, context.model);
 		attachments.clear();
 		removeImagePasteSession?.();
+		transcriptContext = context.mode === "tui" ? context : undefined;
 		removeImagePasteSession =
 			context.mode === "tui"
 				? installImageAttachmentSession({ cwd: context.cwd, getTheme: () => context.ui.theme, store: attachments })
@@ -54,6 +62,7 @@ export default function viewImageExtension(pi: ExtensionAPI): void {
 	pi.on("session_shutdown", (event) => {
 		removeImagePasteSession?.();
 		removeImagePasteSession = undefined;
+		transcriptContext = undefined;
 		attachments.clear();
 		if (event.reason === "reload" || event.reason === "quit") disposeCodeModeAdapter();
 	});

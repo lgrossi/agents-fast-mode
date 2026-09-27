@@ -136,8 +136,8 @@ the error text.
 
 In submitted user messages, `$name` tokens that match a discovered skill are
 drawn as pills labelled with the skill's display name. References inside inline
-or fenced Markdown code stay literal. Pills are suppressed while an overlay is
-open or a selection is active.
+or fenced Markdown code stay literal. Pills are painted before native selection
+and overlays, so opening another UI does not remove their colors.
 
 ## Editor autocomplete
 

@@ -1,6 +1,5 @@
-import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { ComponentStack, tuiTheme } from "@luan.sh/pi-libtui";
-import { ensureMouseRegistry } from "@luan.sh/pi-libtui/mouse";
 import { registerSkillCodeModeAdapter } from "./code-mode-adapter.ts";
 import { getSkillsSettings, registerSkillsXSettings } from "./contributions/xsettings.ts";
 import { registerSkillEditorHighlights } from "./contributions/editor-highlights.ts";
@@ -9,16 +8,11 @@ import { registerSkillsPromptContribution } from "./prompt.ts";
 import { createSkillTool } from "./tools/skill/definition.ts";
 import { LOADED_SKILL_CONTEXT_MESSAGE_TYPE } from "./loaded-skill-context.ts";
 import { skillAutocompleteItems, skillAutocompleteProvider } from "./ui/autocomplete.ts";
-import {
-	projectSkillTranscript,
-	renderSkillTranscriptPills,
-	stripSkillTranscriptMarkers,
-} from "./ui/transcript-skills.ts";
+import { projectSkillTranscript } from "./ui/transcript-skills.ts";
 
 const AUTOCOMPLETE_INSTALLED = Symbol.for("pi-skills/autocomplete-installed/v1");
 
 export default function skillsExtension(pi: ExtensionAPI): void {
-	const mouse = ensureMouseRegistry();
 	let project: { cwd: string; trusted: boolean } | undefined;
 	const discoveredSkills = (): Map<string, SkillReference> => discoverSkills(pi, project);
 	const disposeXSettings = registerSkillsXSettings();
@@ -29,26 +23,20 @@ export default function skillsExtension(pi: ExtensionAPI): void {
 	pi.registerMessageRenderer(LOADED_SKILL_CONTEXT_MESSAGE_TYPE, () => new ComponentStack());
 	const disposeCodeModeAdapter = registerSkillCodeModeAdapter(tool);
 	let disposeEditorHighlights = (): void => {};
-	let disposeTranscriptPills = (): void => {};
+	let transcriptContext: ExtensionContext | undefined;
 	let skills: ReadonlyMap<string, SkillReference> = new Map();
 	pi.registerMarkdownTransformer((markdown, context) =>
-		context.messageType === "user" ? projectSkillTranscript(markdown, skills) : markdown,
+		context.messageType === "user" && transcriptContext
+			? projectSkillTranscript(markdown, skills, context.availableWidth, transcriptContext.ui.theme)
+			: markdown,
 	);
 	pi.on("session_start", async (event, ctx) => {
 		project = { cwd: ctx.cwd, trusted: ctx.isProjectTrusted() };
 		if (!ctx.hasUI) return;
+		transcriptContext = ctx;
 		skills = await addSkillDisplayNames(discoveredSkills());
 		disposeEditorHighlights();
 		disposeEditorHighlights = registerSkillEditorHighlights(() => skills);
-		disposeTranscriptPills();
-		disposeTranscriptPills = mouse.registerScreenDecorator({
-			id: "pi-skills.transcript-pills",
-			priority: 5,
-			decorate: (screen, context) =>
-				context.hasOverlay || context.selectionActive
-					? screen.map(stripSkillTranscriptMarkers)
-					: renderSkillTranscriptPills(screen, ctx.ui.theme),
-		});
 		const ui = ctx.ui as typeof ctx.ui & { [AUTOCOMPLETE_INSTALLED]?: true };
 		if (ui[AUTOCOMPLETE_INSTALLED] && event.reason !== "reload") return;
 		ui[AUTOCOMPLETE_INSTALLED] = true;
@@ -60,7 +48,7 @@ export default function skillsExtension(pi: ExtensionAPI): void {
 	});
 	pi.on("session_shutdown", (event) => {
 		disposeEditorHighlights();
-		disposeTranscriptPills();
+		transcriptContext = undefined;
 		if (event.reason === "reload" || event.reason === "quit") {
 			disposePrompt();
 			disposeCodeModeAdapter();

@@ -1,0 +1,48 @@
+import { afterEach, expect, test } from "bun:test";
+import { initTheme, type Theme, UserMessageComponent } from "@earendil-works/pi-coding-agent";
+import { compositeTuiLine, stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import { Terminal } from "@xterm/headless";
+import { configureTuiAppearance, getTuiAppearance } from "../src/appearance.ts";
+import { renderTranscriptPill } from "../src/decoration/transcript-pills.ts";
+
+const theme = {
+	name: "transcript-test",
+	getColorMode: () => "truecolor",
+	getFgAnsi: () => "\x1b[38;2;220;220;220m",
+	getBgAnsi: () => "\x1b[48;2;30;34;42m",
+} as never as Theme;
+const appearance = getTuiAppearance();
+afterEach(() => configureTuiAppearance(appearance));
+
+test.each([20, 40, 80])("native user Markdown paints matching pill caps and body at %i columns", async (width) => {
+	initTheme("dark", false);
+	configureTuiAppearance({ powerline: true });
+	const message = new UserMessageComponent("before ATTACHMENT after", undefined, 1, [
+		(text, context) =>
+			text.replace(
+				"ATTACHMENT",
+				renderTranscriptPill(theme, { icon: "view-image", label: "Image #1" }, context.availableWidth),
+			),
+	]);
+	const rendered = message.render(width);
+	expect(rendered.every((line) => visibleWidth(line) <= width)).toBe(true);
+	const row = rendered.find((line) => line.includes("Image"))!;
+	const plain = stripTerminalSequences(row);
+	expect(plain.replaceAll("\u00a0", " ")).toContain("Image #1");
+	// An unrelated overlay must not change the surviving pill's paint.
+	for (const line of [row, compositeTuiLine(row, "x", width - 1, 1, width)]) {
+		const terminal = new Terminal({ cols: width, rows: 2, allowProposedApi: true });
+		try {
+			await new Promise<void>((resolve) => terminal.write(line, resolve));
+			const cells = terminal.buffer.active.getLine(0)!;
+			const left = cells.getCell(visibleWidth(plain.slice(0, plain.indexOf(""))))!;
+			const body = cells.getCell(visibleWidth(plain.slice(0, plain.indexOf("Image"))))!;
+			const right = cells.getCell(visibleWidth(plain.slice(0, plain.indexOf(""))))!;
+			expect(left.getFgColor()).toBe(body.getBgColor());
+			expect(right.getFgColor()).toBe(body.getBgColor());
+			expect(body.getFgColor()).not.toBe(body.getBgColor());
+		} finally {
+			terminal.dispose();
+		}
+	}
+});

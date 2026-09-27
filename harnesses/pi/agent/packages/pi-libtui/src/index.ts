@@ -331,4 +331,5 @@ export {
 	type TerminalBridgeReadResponse,
 } from "./terminal/bridge-client.ts";
 export { stripTopLevelZoneMarkers } from "./terminal/embedding.ts";
+export { renderTranscriptPill } from "./decoration/transcript-pills.ts";
 export { PtyPane, type PtyPaneOptions, PtyProcess, type PtyProcessOptions } from "./terminal/pty-pane.ts";

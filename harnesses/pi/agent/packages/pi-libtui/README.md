@@ -88,6 +88,10 @@ and pi-exec-command rows collapsed into an `Explored` group.
 `ProgressBar`, `renderPill`, and `renderEditorTokenPills`: the
 pi-custom-editor status row and file tokens.
 
+`renderTranscriptPill` paints feature-owned labels before native Markdown
+wrapping. Image, file-reference, and skill pills share this path without a
+screen decorator; native selection and overlays compose over the painted pills.
+
 ![Status row and editor pills in pi-custom-editor](https://pi.luan.sh/media/libtui/status-row.png)
 
 `TransientPill`: the pi-tuicr confirmation after a review comment is added.

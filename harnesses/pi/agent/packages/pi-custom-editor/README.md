@@ -83,6 +83,9 @@ Two built-in contributions run on the rendered editor text:
 
 Nothing is highlighted inside inline or fenced Markdown code.
 
+Submitted `@path` references also render as file pills in the transcript.
+This does not change stored message text or the context sent to the model.
+
 ## Settings
 
 Settings are defined with `@luan.sh/pi-xsettings` under namespace
