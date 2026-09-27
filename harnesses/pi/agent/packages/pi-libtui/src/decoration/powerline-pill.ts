@@ -47,6 +47,13 @@ export function backgroundAnsiAtColumn(line: string, column: number): string {
 	return background;
 }
 
+/** Paint a cap with the exact background of a native rendered surface. */
+export function nativeSurfaceCap(line: string, cap: string): string {
+	const background = backgroundAnsiAtColumn(line, 0);
+	const foreground = background.replace(/\[(\d+)/u, (_match, code: string) => `[${Number(code) - 10}`);
+	return `\x1b[49m${foreground}${cap}\x1b[39m`;
+}
+
 /**
  * Generate a pill surface that contrasts with its destination background.
  * @param theme Active Pi theme used for semantic color generation and fallback background discovery.

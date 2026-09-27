@@ -116,6 +116,7 @@ Namespace `@luan.sh/pi-libtui` (label "TUI", all applied live):
 | `animationSmoothness` | `balanced` (`economy`, `balanced`, `smooth`, `ultra`) |
 | `thinking*`, `working*`, `tool*` (`Indicator`, `Message`, `TextEffect`, `PulseEffect`, `Presentation`) | `inherit` (use the General value) |
 | `powerline` / `powerlineButtons` / `softCursor` | `false` |
+| `userMessageBubbles` | `false` (right-aligned user messages; UI → TUI) |
 | `insertionCursor` / `navigationCursor` / `selectionCursor` | `virtual` |
 
 ## Actions and keybindings

@@ -9,7 +9,7 @@ The package has two surfaces. `import "@luan.sh/pi-libtui"` is a
 side-effect-free library: it does not start Pi, probe the terminal, register a
 tool, or install UI. `src/extension.ts` is a Pi extension (listed in the
 package's `pi.extensions`) that installs the generic mouse, cursor, and
-editor-token bridges, keeps the shared native PTY host alive, measures terminal
+editor-token and user-message layout bridges, keeps the shared native PTY host alive, measures terminal
 colors, applies the `harmonious` theme fallback, drives Pi's streaming status
 row, and registers the `/libtui:colors` 256-color palette diagnostic. It
 registers no model-facing tools, keybindings, or feature-specific UI.
@@ -195,7 +195,19 @@ defaults:
 | `animationSmoothness` | `balanced` | `economy`, `balanced`, `smooth`, `ultra` (roughly 13 to 60 redraws per second) |
 | `thinking*`, `working*`, `tool*` (`Indicator`, `Message`, `TextEffect`, `PulseEffect`, `Presentation`) | `inherit` | per-phase overrides of the general value |
 | `powerline`, `powerlineButtons`, `softCursor` | `false` | Powerline separators, button caps, softer virtual cursor |
+| `userMessageBubbles` | `false` | Right-aligned user messages with the native message background |
 | `insertionCursor`, `navigationCursor`, `selectionCursor` | `virtual` | cursor styles |
+
+Enable **User message bubbles** under **UI → TUI** in `/xsettings`, or set
+`pi-libtui.userMessageBubbles = true` under `[appearance]` in `xsettings.toml`.
+Messages use up to 75% of the transcript width, capped at 60 columns, with
+left-aligned text and no vertical padding. Single-line bubbles use rounded
+Powerline caps with the Nerd Font icon pack; multiline bubbles use filled
+diagonal corners and solid sides. Without Nerd Fonts, bubbles use square edges.
+Neither style adds outline or padding rows.
+Panes narrower than 40 columns use the available width. Changes
+apply live to existing messages; markdown, annotations, and terminal message
+markers remain native. Without Xsettings the setting defaults to off.
 
 Inline activity is composed as `indicator + message`, then the effect scope is
 painted; an exclusive scene replaces that composition. The extension applies

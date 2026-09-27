@@ -42,6 +42,7 @@ describe("shared TUI appearance", () => {
 			powerline: false,
 			powerlineButtons: false,
 			softCursor: false,
+			userMessageBubbles: false,
 			insertionCursor: "virtual",
 			navigationCursor: "virtual",
 			selectionCursor: "virtual",

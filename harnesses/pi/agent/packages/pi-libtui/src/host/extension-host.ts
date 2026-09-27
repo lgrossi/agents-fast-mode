@@ -12,6 +12,7 @@ import { installCursorBridge } from "./cursor-bridge.ts";
 import { installEditorBridge } from "./editor-bridge.ts";
 import { installMouseBridge } from "./mouse-bridge.ts";
 import { installSplitPaneBridge } from "./split-pane-bridge.ts";
+import { installUserMessageBridge } from "./user-message-bridge.ts";
 
 const WIDGET_KEY = "pi-libtui.mouse-bridge";
 const HOST_CAPABILITY_KEY = Symbol.for("pi-libtui/extension-host/v1");
@@ -173,6 +174,7 @@ function createHostRegistration(): HostRegistration {
 				readonly ui: ExtensionContext["ui"];
 				readonly removeEditorBridge: () => void;
 				readonly removeEditorDecorator: () => void;
+				readonly removeUserMessageBridge: () => void;
 		  }
 		| undefined;
 
@@ -182,6 +184,7 @@ function createHostRegistration(): HostRegistration {
 		activeSession = undefined;
 		session.removeEditorDecorator();
 		session.removeEditorBridge();
+		session.removeUserMessageBridge();
 		session.ui.setWidget(WIDGET_KEY, undefined);
 	}
 
@@ -195,7 +198,13 @@ function createHostRegistration(): HostRegistration {
 				id: "pi-libtui.native-paste-markers",
 				decorate: (lines, width) => renderEditorPasteMarkerPills(lines, width, ctx.ui.theme).lines,
 			});
-			activeSession = { sessionManager: ctx.sessionManager, ui: ctx.ui, removeEditorBridge, removeEditorDecorator };
+			activeSession = {
+				sessionManager: ctx.sessionManager,
+				ui: ctx.ui,
+				removeEditorBridge,
+				removeEditorDecorator,
+				removeUserMessageBridge: installUserMessageBridge(),
+			};
 			// A zero-height widget obtains Pi's stable TUI reference without changing the existing spacer row.
 			ctx.ui.setWidget(WIDGET_KEY, (tui) => new LibtuiHostWidget(tui, ctx.ui));
 		},

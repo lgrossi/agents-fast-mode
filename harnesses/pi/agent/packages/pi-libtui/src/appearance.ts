@@ -241,6 +241,7 @@ export interface TuiAppearanceSettings {
 	powerline: boolean;
 	powerlineButtons: boolean;
 	softCursor: boolean;
+	userMessageBubbles: boolean;
 	insertionCursor: TuiCursorStyle;
 	navigationCursor: TuiCursorStyle;
 	selectionCursor: TuiCursorStyle;
@@ -275,12 +276,13 @@ export const DEFAULT_TUI_APPEARANCE: Readonly<TuiAppearanceSettings> = Object.fr
 	powerline: false,
 	powerlineButtons: false,
 	softCursor: false,
+	userMessageBubbles: false,
 	insertionCursor: "virtual",
 	navigationCursor: "virtual",
 	selectionCursor: "virtual",
 });
 
-const APPEARANCE_PROTOCOL = "pi-libtui/appearance/v7" as const;
+const APPEARANCE_PROTOCOL = "pi-libtui/appearance/v8" as const;
 const APPEARANCE_KEY = Symbol.for(APPEARANCE_PROTOCOL);
 
 interface AppearanceRegistry {
@@ -541,6 +543,8 @@ function mergeAppearance(
 		powerline: typeof next.powerline === "boolean" ? next.powerline : current.powerline,
 		powerlineButtons: typeof next.powerlineButtons === "boolean" ? next.powerlineButtons : current.powerlineButtons,
 		softCursor: typeof next.softCursor === "boolean" ? next.softCursor : current.softCursor,
+		userMessageBubbles:
+			typeof next.userMessageBubbles === "boolean" ? next.userMessageBubbles : current.userMessageBubbles,
 		insertionCursor: isCursorStyle(next.insertionCursor) ? next.insertionCursor : current.insertionCursor,
 		navigationCursor: isCursorStyle(next.navigationCursor) ? next.navigationCursor : current.navigationCursor,
 		selectionCursor: isCursorStyle(next.selectionCursor) ? next.selectionCursor : current.selectionCursor,
@@ -576,6 +580,7 @@ function sameAppearance(left: Readonly<TuiAppearanceSettings>, right: Readonly<T
 		left.powerline === right.powerline &&
 		left.powerlineButtons === right.powerlineButtons &&
 		left.softCursor === right.softCursor &&
+		left.userMessageBubbles === right.userMessageBubbles &&
 		left.insertionCursor === right.insertionCursor &&
 		left.navigationCursor === right.navigationCursor &&
 		left.selectionCursor === right.selectionCursor

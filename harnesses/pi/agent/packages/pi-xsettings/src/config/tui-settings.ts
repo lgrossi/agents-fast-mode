@@ -385,6 +385,13 @@ export const tuiSettings = createSettings({
 			type: "boolean",
 			default: false,
 		},
+		userMessageBubbles: {
+			category: "appearance",
+			label: "User message bubbles",
+			description: "Show user messages in right-aligned bubbles instead of full-width rows.",
+			type: "boolean",
+			default: false,
+		},
 		insertionCursor: {
 			category: "appearance",
 			page: "terminal",
