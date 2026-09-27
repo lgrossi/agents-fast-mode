@@ -119,7 +119,7 @@ export function installCustomEditor(
 		onTuiAvailable(tui);
 		let layout = layouts.get(tui as object);
 		if (!layout) {
-			layout = installEditorMinimumRows(tui, 1);
+			layout = installEditorMinimumRows(tui, 1, () => getCustomEditorSettings().hideEditorGap);
 			layouts.set(tui as object, layout);
 		}
 		const options: PiCustomEditorOptions = { ctx, theme: ctx.ui.theme, state, getThinkingLabel, layout };

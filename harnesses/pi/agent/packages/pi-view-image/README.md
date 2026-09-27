@@ -93,6 +93,11 @@ binary at `high` detail, attached as an image, and its text becomes a
 the plain path and Pi shows a warning `Could not attach <path>: <message>`.
 Pending pills are cleared on session start and shutdown.
 
+Stash and prompt-history restoration rebuild image pills from saved file tags.
+Editor exports save attachment paths rather than session-local tokens, so stashed
+drafts survive a session restart. Restored images are loaded again on submit;
+missing files use the same warning path as pasted images.
+
 Submitted image tags render as numbered pills in user messages, including
 resumed sessions. This is display-only: stored tags and model attachments stay
 unchanged. Tags inside Markdown code remain literal.

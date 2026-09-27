@@ -56,6 +56,14 @@ export class ImageAttachmentStore {
 		this.nextToken = FIRST_IMAGE_TOKEN;
 	}
 
+	/** Persist paths, not session-local private-use tokens. */
+	expand(text: string): string {
+		for (const attachment of this.inText(text)) {
+			text = replaceAttachmentToken(text, attachment, attachmentFileTag(attachment.path).trimEnd());
+		}
+		return text;
+	}
+
 	private occurrences(text: string): Array<{ index: number; attachment: PendingImageAttachment }> {
 		const found: Array<{ index: number; attachment: PendingImageAttachment }> = [];
 		for (const attachment of this.attachments.values()) {

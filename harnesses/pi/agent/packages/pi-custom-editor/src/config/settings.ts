@@ -64,6 +64,15 @@ const markerLabels: Readonly<Record<keyof typeof PROMPT_MARKERS, string>> = {
 };
 
 const definitions = {
+	hideEditorGap: {
+		category: "appearance",
+		page: "editor",
+		section: "Editor layout",
+		label: "Hide editor gap",
+		description: "Remove Pi's blank spacer between the transcript and editor widgets.",
+		type: "boolean",
+		default: true,
+	},
 	preset: {
 		category: "appearance",
 		page: "editor",

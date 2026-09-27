@@ -35,7 +35,12 @@ export default function viewImageExtension(pi: ExtensionAPI): void {
 		transcriptContext = context.mode === "tui" ? context : undefined;
 		removeImagePasteSession =
 			context.mode === "tui"
-				? installImageAttachmentSession({ cwd: context.cwd, getTheme: () => context.ui.theme, store: attachments })
+				? installImageAttachmentSession({
+						cwd: context.cwd,
+						ui: context.ui,
+						getTheme: () => context.ui.theme,
+						store: attachments,
+					})
 				: undefined;
 	});
 	pi.on("model_select", (event) => configureViewImageToolForModel(tool, event.model));

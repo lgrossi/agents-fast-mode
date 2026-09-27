@@ -29,6 +29,8 @@ without it the defaults apply and there is no in-app way to change them.
 
 ## What it does
 
+- Hides Pi's blank gap above the editor by default. Disable **Hide editor gap**
+  under Appearance → Editor → Editor layout to restore it; widgets remain visible.
 - Wraps the editor through Pi's `setEditorComponent` layer. If another
   extension already installed an editor factory, that editor is decorated
   (its render output is re-composed) rather than replaced.

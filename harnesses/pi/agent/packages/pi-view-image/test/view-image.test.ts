@@ -2,11 +2,12 @@ import { describe, expect, test } from "bun:test";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { CustomEditor, type Theme } from "@earendil-works/pi-coding-agent";
+import { CustomEditor, type Theme, type KeybindingsManager } from "@earendil-works/pi-coding-agent";
 import { getCodeModeToolAdapterRegistry } from "@luan.sh/pi-code-mode/sdk";
 import { icon } from "@luan.sh/pi-libtui";
 import {
 	EDITOR_PROTOCOL,
+	type EditorFactory,
 	type EditorPasteHandler,
 	type EditorRegistry,
 	type EditorRenderDecorator,
@@ -71,7 +72,17 @@ describe("view_image", () => {
 					};
 				},
 			};
-			const removeSession = installImageAttachmentSession({ cwd: directory, getTheme: () => theme, store }, registry);
+			let factory: EditorFactory | undefined;
+			const ui = {
+				getEditorComponent: () => factory,
+				setEditorComponent: (next: EditorFactory | undefined) => {
+					factory = next;
+				},
+			};
+			const removeSession = installImageAttachmentSession(
+				{ cwd: directory, ui, getTheme: () => theme, store },
+				registry,
+			);
 			try {
 				expect(CustomEditor.prototype.handleInput).toBe(handleInput);
 				expect(CustomEditor.prototype.insertTextAtCursor).toBe(insertTextAtCursor);
@@ -86,6 +97,64 @@ describe("view_image", () => {
 			expect(renderDecorator).toBeUndefined();
 		} finally {
 			await rm(directory, { recursive: true });
+		}
+	});
+
+	test("restores saved image tags as pills and keeps stash text portable across sessions", async () => {
+		let factory: EditorFactory | undefined;
+		const ui = {
+			getEditorComponent: () => factory,
+			setEditorComponent: (next: EditorFactory | undefined) => {
+				factory = next;
+			},
+		};
+		const store = new ImageAttachmentStore();
+		let renderDecorator: EditorRenderDecorator | undefined;
+		const registry: EditorRegistry = {
+			protocol: EDITOR_PROTOCOL,
+			version: 1,
+			registerPasteHandler: () => () => {},
+			registerRenderDecorator: (decorator) => {
+				renderDecorator = decorator;
+				return () => {};
+			},
+		};
+		const remove = installImageAttachmentSession({ cwd: "/tmp", ui, getTheme: () => theme, store }, registry);
+		try {
+			// type-boundary: this test supplies only the host methods used by the native editor.
+			type EditorHostBoundary = unknown;
+			const tui = { terminal: { rows: 30, columns: 80 }, requestRender() {} } as EditorHostBoundary as never;
+			const keys = { matches: () => false } as EditorHostBoundary as KeybindingsManager;
+			const editor = factory!(tui, {} as never, keys);
+			const saved =
+				'<file name="/tmp/screen &amp; &quot;one&quot;.png"></file>\n<file name="/tmp/two.webp"></file>\ncompare';
+			editor.setText(saved);
+			expect(editor.getText()).not.toContain("<file");
+			const rendered = renderDecorator!.decorate(editor.render(80), 80).join("\n");
+			expect(rendered).toContain("Image #1");
+			expect(rendered).toContain("Image #2");
+			expect(editor.getExpandedText?.()).toBe(saved);
+			editor.setText("");
+			store.clear();
+			editor.setText(saved);
+			const loaded: string[] = [];
+			let submitted = "";
+			editor.onSubmit = (text) => {
+				submitted = text;
+			};
+			editor.handleInput("\r");
+			const result = await transformPendingImageAttachments({ text: submitted }, store, async (path) => {
+				loaded.push(path);
+				return { path, data: "IMAGE", mimeType: "image/png", width: 1, height: 1, bytes: 1, detail: "high" };
+			});
+			expect(loaded).toEqual(['/tmp/screen & "one".png', "/tmp/two.webp"]);
+			expect(result?.images).toHaveLength(2);
+			const literal =
+				'`<file name="/tmp/example.png"></file>`\n```xml\n<file name="/tmp/example.png"></file>\n```\n<file name="/tmp/notes.txt">text</file>';
+			editor.setText(literal);
+			expect(editor.getText()).toBe(literal);
+		} finally {
+			remove();
 		}
 	});
 

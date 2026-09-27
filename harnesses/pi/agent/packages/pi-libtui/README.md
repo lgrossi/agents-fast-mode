@@ -22,6 +22,10 @@ The native palette diagnostic and shared picker components in Xsettings.
 
 [Watch the demo](https://pi.luan.sh/media/previews/pi-libtui-e7ff85f140d3.mp4).
 
+`installEditorMinimumRows` also accepts an optional live gap-visibility callback.
+Its Pi 0.87.1 layout adapter can hide the native above-editor spacer without
+trimming widget output; disposal restores the spacer and original allocation.
+
 ## Install
 
 ```sh

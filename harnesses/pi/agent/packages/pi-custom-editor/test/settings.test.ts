@@ -9,7 +9,7 @@ const REGISTRY_KEY = Symbol.for("pi-xsettings/registry/v1");
 
 interface SettingsRegistry {
 	registrations: Record<string, { definitions: readonly { page?: string }[] } | undefined>;
-	publish(namespace: string, values: Record<string, object | string>): Promise<void>;
+	publish(namespace: string, values: Record<string, object | string | boolean>): Promise<void>;
 }
 
 afterEach(() => {
@@ -21,10 +21,12 @@ test("uses compiled defaults standalone and applies live presentation settings",
 	const registry = Reflect.get(globalThis, REGISTRY_KEY) as SettingsRegistry;
 
 	expect(getCustomEditorSettings()).toEqual(DEFAULT_CUSTOM_EDITOR_SETTINGS);
+	expect(getCustomEditorSettings().hideEditorGap).toBe(true);
 	expect(
 		registry.registrations["pi-custom-editor"]?.definitions.every((definition) => definition.page === "editor"),
 	).toBe(true);
 	await registry.publish("pi-custom-editor", {
+		hideEditorGap: false,
 		preset: "borderless",
 		leftRail: "static",
 		promptMarker: "chevron",
@@ -35,6 +37,7 @@ test("uses compiled defaults standalone and applies live presentation settings",
 
 	expect(getCustomEditorSettings()).toEqual({
 		...DEFAULT_CUSTOM_EDITOR_SETTINGS,
+		hideEditorGap: false,
 		preset: "borderless",
 		leftRail: "static",
 		promptMarker: "chevron",
