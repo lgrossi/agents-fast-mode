@@ -151,3 +151,9 @@ export function attachmentFileTag(path: string): string {
 		.replaceAll(">", "&gt;");
 	return `<file name="${escaped}"></file>\n`;
 }
+
+export function decodeAttachmentPath(path: string): string {
+	return path.replace(/&(quot|lt|gt|amp);/g, (entity) =>
+		entity === "&quot;" ? '"' : entity === "&lt;" ? "<" : entity === "&gt;" ? ">" : "&",
+	);
+}

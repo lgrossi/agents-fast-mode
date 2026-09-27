@@ -95,6 +95,14 @@ pi-custom-editor status row and file tokens.
 `renderTranscriptPill` paints feature-owned labels before native Markdown
 wrapping. Image, file-reference, and skill pills share this path without a
 screen decorator; native selection and overlays compose over the painted pills.
+The optional muted variant targets queued-message rows.
+`installPendingMessageTransformer` leases Pi 0.87.1's pre-truncation queue
+rendering boundary until Pi provides a public transformer for that surface.
+
+`mountHoverPreview` loads a component on pointer hover in fullscreen Pi and
+shows it in a non-capturing native overlay. It cancels stale loads and dismisses
+on input, selection, target movement, resize, and capturing dialogs. Features
+provide hit targets and content; the mount owns pointer and overlay lifecycles.
 
 ![Status row and editor pills in pi-custom-editor](https://pi.luan.sh/media/libtui/status-row.png)
 

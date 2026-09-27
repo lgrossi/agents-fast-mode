@@ -5,7 +5,7 @@
     "format": "biome format --write",
     "check:format": "biome check --linter-enabled=false --assist-enabled=false",
     "lint:pi": "bun run test:lint:pi && biome check --skip=complexity --assist-enabled=false --error-on-warnings",
-    "test:lint:pi": "bun test lint/pi/lint.test.ts",
+    "test:lint:pi": "bun test ./lint/pi/lint.test.ts",
     "typecheck": "tsc --build",
     "build:site": "bun run site/build.ts",
     "dev:site": "bun run site/serve.ts",

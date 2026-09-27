@@ -4,6 +4,17 @@ import type { LayoutBox, LayoutFrame, LayoutScrollView, LayoutScrollViewReferenc
 // type-boundary: Pi 0.84.2's private fullscreen fields are untyped; these validators narrow each reflected value.
 type PiPrivateValue = unknown;
 
+/** Pi 0.87.1 has no public way to distinguish a passive preview from a capturing dialog. */
+export function hasCapturingOverlay(renderer: object): boolean {
+	const getTopmost: PiPrivateValue = Reflect.get(renderer, "getTopmostVisibleOverlay");
+	if (typeof getTopmost !== "function") return true;
+	try {
+		return Reflect.apply(getTopmost, renderer, []) !== undefined;
+	} catch {
+		return true;
+	}
+}
+
 export function isRecord(value: PiPrivateValue): value is Record<PropertyKey, PiPrivateValue> {
 	return value !== null && typeof value === "object";
 }

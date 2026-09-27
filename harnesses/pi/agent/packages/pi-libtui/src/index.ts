@@ -332,4 +332,7 @@ export {
 } from "./terminal/bridge-client.ts";
 export { stripTopLevelZoneMarkers } from "./terminal/embedding.ts";
 export { renderTranscriptPill } from "./decoration/transcript-pills.ts";
+export { installPendingMessageTransformer } from "./host/pending-message-bridge.ts";
+export { mountHoverPreview, type HoverPreviewTarget } from "./overlay/hover-preview.ts";
+export { renderEditorTokenPill } from "./decoration/editor-pills.ts";
 export { PtyPane, type PtyPaneOptions, PtyProcess, type PtyProcessOptions } from "./terminal/pty-pane.ts";

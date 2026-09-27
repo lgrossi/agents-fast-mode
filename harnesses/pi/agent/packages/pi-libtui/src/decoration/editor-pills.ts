@@ -37,6 +37,15 @@ export interface EditorTokenPillResult {
 
 const NO_PILLS: readonly EditorTokenPillGeometry[] = [];
 
+/** Default token paint, also usable by feature renderers that add inert metadata. */
+export function renderEditorTokenPill(context: EditorTokenPillRenderContext): string {
+	const { theme, content, destinationBackgroundAnsi: destination } = context;
+	const colors = tuiTheme(theme);
+	const contrast = contrastingPillBackground(theme, destination);
+	const background = colors.mixForeground(colors.contrastBackground(contrast), contrast, 0.2);
+	return renderPill(theme, content, background, "text.primary", undefined, destination);
+}
+
 function escapeRegExp(value: string): string {
 	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
@@ -128,20 +137,12 @@ function replaceMatches(
 			const destination = backgroundAnsiAtColumn(line, originalX);
 			const pillLabel = label ?? value.slice(1, -1);
 			const content = { icon, iconTone, label: pillLabel } satisfies PillContent;
-			let pill: string;
-			if (render) {
-				pill = render({
-					theme,
-					content,
-					destinationBackgroundAnsi: destination,
-					inverse: inverseValue !== undefined,
-				});
-			} else {
-				const colors = tuiTheme(theme);
-				const contrast = contrastingPillBackground(theme, destination);
-				const background = colors.mixForeground(colors.contrastBackground(contrast), contrast, 0.2);
-				pill = renderPill(theme, content, background, "text.primary", undefined, destination);
-			}
+			const pill = (render ?? renderEditorTokenPill)({
+				theme,
+				content,
+				destinationBackgroundAnsi: destination,
+				inverse: inverseValue !== undefined,
+			});
 			const pillWidth = visibleWidth(pill);
 			if (x < width) pills.push({ line: lineIndex, x, width: Math.min(pillWidth, width - x), token: token ?? value });
 			addedWidth += pillWidth - visibleWidth(value);

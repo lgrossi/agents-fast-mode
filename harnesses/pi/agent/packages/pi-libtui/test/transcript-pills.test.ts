@@ -46,3 +46,25 @@ test.each([20, 40, 80])("native user Markdown paints matching pill caps and body
 		}
 	}
 });
+
+test("queued pill icons, labels, and following text are dim without leaking their background", async () => {
+	configureTuiAppearance({ powerline: true });
+	const queuedTheme = {
+		...theme,
+		getFgAnsi: (token: string) => (token === "dim" ? "\x1b[38;2;80;80;80m" : "\x1b[38;2;220;220;220m"),
+	} as Theme;
+	const line = `${renderTranscriptPill(queuedTheme, { icon: "view-image", label: "Image #1" }, 80, true)} after`;
+	const terminal = new Terminal({ cols: 80, rows: 2, allowProposedApi: true });
+	try {
+		await new Promise<void>((resolve) => terminal.write(line, resolve));
+		const cells = terminal.buffer.active.getLine(0)!;
+		const plain = stripTerminalSequences(line);
+		const cell = (text: string) => cells.getCell(visibleWidth(plain.slice(0, plain.indexOf(text))))!;
+		expect(cell("Image").getFgColor()).toBe(0x505050);
+		expect(cell("after").getFgColor()).toBe(0x505050);
+		expect(cell("after").isBgDefault()).toBe(true);
+		expect(cell("").getFgColor()).toBe(cell("Image").getBgColor());
+	} finally {
+		terminal.dispose();
+	}
+});

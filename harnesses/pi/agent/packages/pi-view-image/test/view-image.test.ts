@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CustomEditor, type Theme, type KeybindingsManager } from "@earendil-works/pi-coding-agent";
+import { ProcessTerminal, TuiAltScreen } from "@earendil-works/pi-tui";
 import { getCodeModeToolAdapterRegistry } from "@luan.sh/pi-code-mode/sdk";
 import { icon } from "@luan.sh/pi-libtui";
 import {
@@ -123,7 +124,9 @@ describe("view_image", () => {
 		try {
 			// type-boundary: this test supplies only the host methods used by the native editor.
 			type EditorHostBoundary = unknown;
-			const tui = { terminal: { rows: 30, columns: 80 }, requestRender() {} } as EditorHostBoundary as never;
+			const terminal = new ProcessTerminal();
+			terminal.write = () => {};
+			const tui = new TuiAltScreen(terminal);
 			const keys = { matches: () => false } as EditorHostBoundary as KeybindingsManager;
 			const editor = factory!(tui, {} as never, keys);
 			const saved =

@@ -102,6 +102,13 @@ Submitted image tags render as numbered pills in user messages, including
 resumed sessions. This is display-only: stored tags and model attachments stay
 unchanged. Tags inside Markdown code remain literal.
 
+Queued steering and follow-up images use dimmed pills too. Hover an image pill
+in the fullscreen editor, transcript, or queue to preview the local file in a
+floating panel without moving keyboard focus. Moving away, typing, selecting
+text, or opening a dialog dismisses it. Previews use the terminal's Kitty/iTerm2
+image support; terminals without graphics show image metadata. Missing files
+or files over 32 MiB show an unavailable preview and do not interrupt editing.
+
 ## Codex-style image labels
 
 Before each request is sent to the provider, user messages whose first text
