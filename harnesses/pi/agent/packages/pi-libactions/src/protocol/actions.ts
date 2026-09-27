@@ -6,6 +6,8 @@ export const ACTIONS_PROTOCOL = "pi-libactions/registry/v1" as const;
 export interface ActionRegistration {
 	id: string;
 	description: string;
+	/** When present, keys are contextual: false leaves normal terminal handling intact. */
+	isActive?(): boolean;
 	run(ctx: ExtensionContext): void | Promise<void>;
 }
 

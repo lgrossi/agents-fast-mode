@@ -486,16 +486,16 @@ describe("shared TUI components", () => {
 		});
 
 		panel.render(30);
-		expect(panel.handleMouse({ type: "enter", row: 2, col: 5 })).toBe(true);
+		expect(panel.onMouse({ type: "enter", row: 2, col: 5 })).toBe(true);
 		const hovered = panel.render(30)[2]!;
 		expect(hovered).toContain(tuiTheme(panelTheme).bgAnsi("surface.selected"));
 		expect(hovered).toContain("Beta");
-		panel.handleMouse({ type: "press", row: 2, col: 5, button: 0 });
-		panel.handleMouse({ type: "release", row: 2, col: 5, button: 0 });
+		panel.onMouse({ type: "press", row: 2, col: 5, button: 0 });
+		panel.onMouse({ type: "release", row: 2, col: 5, button: 0 });
 		expect(selected).toEqual(["b"]);
 
-		panel.handleMouse({ type: "move", row: 0, col: 5 });
-		panel.handleMouse({ type: "leave", row: 0, col: 0 });
+		panel.onMouse({ type: "move", row: 0, col: 5 });
+		panel.onMouse({ type: "leave", row: 0, col: 0 });
 		expect(renders).toBeGreaterThanOrEqual(2);
 	});
 
@@ -520,8 +520,8 @@ describe("shared TUI components", () => {
 		});
 
 		panel.render(30);
-		panel.handleMouse({ type: "press", row: 2, col: 5, button: 0 });
-		panel.handleMouse({ type: "release", row: 2, col: 5, button: 0 });
+		panel.onMouse({ type: "press", row: 2, col: 5, button: 0 });
+		panel.onMouse({ type: "release", row: 2, col: 5, button: 0 });
 		expect(panel.getSelectedValue()).toBe("no");
 		expect(selected).toEqual(["no"]);
 		expect(activated).toEqual([]);
@@ -567,13 +567,13 @@ describe("shared TUI components", () => {
 			{ x: 19, y: 0, width: 9, height: 1, index: 1, value: "add" },
 		]);
 
-		panel.handleMouse({ type: "press", row: 4, col: 25, button: 0 });
-		panel.handleMouse({ type: "release", row: 4, col: 25, button: 0 });
+		panel.onMouse({ type: "press", row: 4, col: 25, button: 0 });
+		panel.onMouse({ type: "release", row: 4, col: 25, button: 0 });
 		panel.handleInput("\x04");
 		expect(activated).toEqual(["add", "add"]);
 
-		panel.handleMouse({ type: "move", row: 1, col: 3 });
-		expect(panel.handleMouse({ type: "leave", row: 0, col: 0 })).toBe(false);
+		panel.onMouse({ type: "move", row: 1, col: 3 });
+		expect(panel.onMouse({ type: "leave", row: 0, col: 0 })).toBe(false);
 	});
 
 	test("styled panel and editor titles restore border ANSI around every border segment", () => {
@@ -710,15 +710,15 @@ describe("shared TUI components", () => {
 			],
 		});
 
-		expect(buttons.handleMouse({ type: "enter", row: 0, col: 22 })).toBe(true);
+		expect(buttons.onMouse({ type: "enter", row: 0, col: 22 })).toBe(true);
 		const hovered = buttons.render(40)[0]!;
 		expect(stripTerminalSequences(hovered)).toBe(stripTerminalSequences(normal));
 		expect(hovered).not.toBe(normal);
 		expect(hovered).toContain(
 			tuiTheme(ansiTheme).bgAnsi(tuiTheme(ansiTheme).contrastBackground(tuiTheme(ansiTheme).color("badge.neutral"))),
 		);
-		buttons.handleMouse({ type: "press", row: 0, col: 22, button: 0 });
-		buttons.handleMouse({ type: "release", row: 0, col: 22, button: 0 });
+		buttons.onMouse({ type: "press", row: 0, col: 22, button: 0 });
+		buttons.onMouse({ type: "release", row: 0, col: 22, button: 0 });
 		buttons.handleInput("\x04");
 		expect(activated).toEqual(["cancel", "add"]);
 		expect(renders).toBeGreaterThan(0);
@@ -747,8 +747,8 @@ describe("shared TUI components", () => {
 		expect(rendered).toContain(colors.bgAnsi("badge.positive"));
 		expect(rendered).not.toContain(colors.bgAnsi("badge.neutral"));
 		expect(buttons.getGeometry()?.buttons).toEqual([{ x: 10, y: 0, width: 10, height: 1, index: 0, value: "save" }]);
-		expect(buttons.handleMouse({ type: "press", row: 0, col: 10, button: 0 })).toBe(true);
-		expect(buttons.handleMouse({ type: "release", row: 0, col: 19, button: 0 })).toBe(true);
+		expect(buttons.onMouse({ type: "press", row: 0, col: 10, button: 0 })).toBe(true);
+		expect(buttons.onMouse({ type: "release", row: 0, col: 19, button: 0 })).toBe(true);
 	});
 
 	test("dialog buttons can form a centered action group", () => {
@@ -1042,11 +1042,11 @@ describe("shared TUI components", () => {
 		expect(geometry?.footer).toEqual({ x: 1, y: 3, width: 28, height: 1 });
 		expect(editor.getText()).toBe("comment");
 
-		editor.handleMouse({ type: "press", row: 3, col: 25, button: 0 });
-		editor.handleMouse({ type: "release", row: 3, col: 25, button: 0 });
+		editor.onMouse({ type: "press", row: 3, col: 25, button: 0 });
+		editor.onMouse({ type: "release", row: 3, col: 25, button: 0 });
 		editor.handleInput("\x04");
 		expect(activated).toEqual(["add", "add"]);
-		expect(editor.handleMouse({ type: "move", row: 2, col: 2 })).toBe(false);
+		expect(editor.onMouse({ type: "move", row: 2, col: 2 })).toBe(false);
 	});
 
 	test("multi-select saves order and warns before discarding changes", () => {

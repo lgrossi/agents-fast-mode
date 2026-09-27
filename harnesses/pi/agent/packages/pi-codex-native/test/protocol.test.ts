@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createAssistantMessageEventStream } from "@earendil-works/pi-ai";
+import { createAssistantMessageEventStream, type Model } from "@earendil-works/pi-ai";
 import { convertToLlm } from "@earendil-works/pi-coding-agent";
 import { createGrammarToolInputProperties } from "../src/constrained-sampling.ts";
 import { buildRequestBody } from "../src/provider/request-body.ts";
@@ -8,7 +8,7 @@ import { convertResponsesMessages } from "../src/responses/shared.ts";
 import { processResponsesStream } from "../src/responses/stream.ts";
 import { createWebRunTool } from "../src/tools/web-run/definition.ts";
 
-const model = {
+const model: Model<"openai-codex-responses"> = {
 	id: "gpt-5.6-sol",
 	name: "GPT-5.6 Sol",
 	provider: "openai-codex",
@@ -19,7 +19,7 @@ const model = {
 	cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
 	contextWindow: 128000,
 	maxTokens: 16384,
-} as never;
+};
 
 test("request conversion keeps the local web runner as a named function tool", () => {
 	const body = buildRequestBody(model, {
@@ -278,4 +278,32 @@ test("serializes Code Mode audio as a Responses tool output", () => {
 		call_id: "call_audio",
 		output: [{ type: "input_audio", audio_url: "data:audio/wav;base64,YQ==" }],
 	});
+});
+
+test("transcript prompt and tool deltas retain their position and honor removals", () => {
+	const nativeModel = { ...model, compat: { supportsMidConvoSystemMessages: true, supportsAdditionalTools: true } };
+	const search = { name: "tool_search", description: "Find tools", parameters: { type: "object" as const } };
+	const loaded = { name: "weather", description: "Weather", parameters: { type: "object" as const } };
+	const messages = [
+		{ role: "system" as const, content: "Base instructions", toolsAdded: [search], timestamp: 0 },
+		{ role: "user" as const, content: "Find the weather", timestamp: 1 },
+		{ role: "system" as const, content: "Use metric units", toolsAdded: [loaded], timestamp: 2 },
+	];
+	const body = buildRequestBody(nativeModel, { messages });
+	expect(body.instructions).toBe("Base instructions");
+	expect(body.tools).toMatchObject([{ name: "tool_search" }]);
+	expect(body.input).toMatchObject([
+		{ role: "user" },
+		{ type: "additional_tools", tools: [{ name: "weather" }] },
+		{ role: "developer", content: "Use metric units" },
+	]);
+	const removed = buildRequestBody(nativeModel, {
+		messages: [...messages, { role: "system", content: "", toolsRemoved: [{ name: "weather" }], timestamp: 3 }],
+	});
+	expect(removed.tools).toMatchObject([{ name: "tool_search" }]);
+	expect(
+		removed.input.some(
+			(item) => item !== null && typeof item === "object" && "type" in item && item.type === "additional_tools",
+		),
+	).toBe(false);
 });

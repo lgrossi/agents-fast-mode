@@ -136,7 +136,7 @@ export class FramedEditorOverlay implements Component, Focusable {
 	 * @param event Pointer coordinates relative to the framed overlay.
 	 * @returns `true` when the event targets the footer; otherwise `false`.
 	 */
-	handleMouse(event: ActionPanelMouseEvent): boolean {
+	onMouse(event: ActionPanelMouseEvent): boolean {
 		if (event.type === "leave") {
 			this.leaveFooter(event);
 			return false;
@@ -155,9 +155,9 @@ export class FramedEditorOverlay implements Component, Focusable {
 		const translated = { ...event, row: event.row - footer.y, col: event.col - footer.x };
 		if (!this.footerPointerInside) {
 			this.footerPointerInside = true;
-			this.config.footer?.handleMouse?.({ ...translated, type: "enter" });
+			this.config.footer?.onMouse?.({ ...translated, type: "enter" });
 		}
-		if (event.type !== "enter") this.config.footer?.handleMouse?.(translated);
+		if (event.type !== "enter") this.config.footer?.onMouse?.(translated);
 		return true;
 	}
 
@@ -231,6 +231,6 @@ export class FramedEditorOverlay implements Component, Focusable {
 	private leaveFooter(event: ActionPanelMouseEvent): void {
 		if (!this.footerPointerInside) return;
 		this.footerPointerInside = false;
-		this.config.footer?.handleMouse?.({ ...event, type: "leave", row: -1, col: -1 });
+		this.config.footer?.onMouse?.({ ...event, type: "leave", row: -1, col: -1 });
 	}
 }

@@ -28,7 +28,8 @@
     {
       "source": "npm:@plannotator/pi-extension",
       "skills": []
-    }
+    },
+    "packages/pi-voice"
   ],
   "compaction": {
     "enabled": true,

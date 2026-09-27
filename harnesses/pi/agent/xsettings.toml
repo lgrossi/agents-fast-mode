@@ -54,6 +54,7 @@ pi-codex-native.cacheDiagnostics = "off"
 pi-codex-native.fallbackCompaction = false
 pi-codex-native.contextWindowPreset = "balanced"
 pi-subagents.maxConcurrency = "4"
+pi-voice.v3Voice = "sol"
 
 [interaction]
 pi.steeringMode = "one-at-a-time"

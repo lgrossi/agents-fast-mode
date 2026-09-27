@@ -173,8 +173,8 @@ export class ReactionDialog implements Component, Focusable {
 		this.panel.handleInput(data);
 	}
 
-	handleMouse(event: ModalOverlayMouseEvent): boolean {
-		return this.panel.handleMouse(event);
+	onMouse(event: ModalOverlayMouseEvent): boolean {
+		return this.panel.onMouse(event);
 	}
 
 	getOptionRects(): ReadonlyArray<{ value: string; x: number; y: number; width: number; height: number }> {
@@ -301,8 +301,8 @@ export class CommentDialog implements Component, Focusable {
 		this.editor.handleInput(data);
 	}
 
-	handleMouse(event: ModalOverlayMouseEvent): boolean {
-		return this.editor.handleMouse(event);
+	onMouse(event: ModalOverlayMouseEvent): boolean {
+		return this.editor.onMouse(event);
 	}
 
 	getButtonRects(): ReadonlyArray<{

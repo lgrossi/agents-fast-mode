@@ -39,6 +39,13 @@ export function watchSettings(
 		}
 	}
 	let queued: NodeJS.Immediate | undefined;
+	const queueRefresh = () => {
+		if (queued) return;
+		queued = setImmediate(() => {
+			queued = undefined;
+			void refresh().catch((error: Error) => report(error));
+		});
+	};
 	const watchers: FSWatcher[] = [];
 	try {
 		for (const [directory, names] of directories) {
@@ -58,11 +65,7 @@ export function watchSettings(
 					report(error as Error);
 					return;
 				}
-				if (queued) return;
-				queued = setImmediate(() => {
-					queued = undefined;
-					void refresh().catch((error: Error) => report(error));
-				});
+				queueRefresh();
 			});
 			watcher.on("error", report);
 			watchers.push(watcher);
@@ -71,6 +74,8 @@ export function watchSettings(
 		for (const watcher of watchers) watcher.close();
 		throw error;
 	}
+	// Native watchers may miss a replacement during startup. Reconcile once after subscribing.
+	queueRefresh();
 	return () => {
 		if (queued) clearImmediate(queued);
 		for (const watcher of watchers) watcher.close();

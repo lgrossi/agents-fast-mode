@@ -1,4 +1,15 @@
-import type { Api, Context, Model, Tool, Usage } from "@earendil-works/pi-ai";
+import {
+	normalizeContext,
+	resolveTranscript,
+	resolveTranscriptTools,
+	getSystemMessageText,
+	renderSystemMessageUpdate,
+	type Api,
+	type Context,
+	type Model,
+	type Tool,
+	type Usage,
+} from "@earendil-works/pi-ai";
 
 type ResponseInput = Record<string, unknown>[];
 type ResponseInputItem = Record<string, unknown>;
@@ -62,31 +73,20 @@ export function splitDeferredTools(
 	context: Context,
 	enabled: boolean,
 ): { immediate: Tool[]; deferred: Map<string, Tool> } {
-	const uniqueTools = new Map<string, Tool>();
-	for (const tool of context.tools ?? []) uniqueTools.set(tool.name, tool);
-	if (!enabled) return { immediate: [...uniqueTools.values()], deferred: new Map() };
-
-	const deferredNames = new Set<string>();
-	const usedNames = new Set<string>();
-	for (const message of context.messages) {
-		if (message.role === "assistant") {
-			for (const block of message.content) {
-				if (block.type === "toolCall") usedNames.add(block.name);
-			}
-		} else if (message.role === "toolResult") {
-			for (const name of message.addedToolNames ?? []) {
-				if (!usedNames.has(name)) deferredNames.add(name);
-			}
-		}
-	}
-
-	const immediate: Tool[] = [];
-	const deferred = new Map<string, Tool>();
-	for (const [name, tool] of uniqueTools) {
-		if (deferredNames.has(name)) deferred.set(name, tool);
-		else immediate.push(tool);
-	}
-	return { immediate, deferred };
+	const messages = normalizeContext(context).messages;
+	const placement = resolveTranscriptTools(messages, enabled);
+	return {
+		immediate: placement.requestTools,
+		deferred: new Map(
+			placement.anchorsAdditions
+				? messages
+						.slice(1)
+						.flatMap((message) =>
+							message.role === "system" ? (message.toolsAdded ?? []).map((tool) => [tool.name, tool] as const) : [],
+						)
+				: [],
+		),
+	};
 }
 
 function sanitizeSurrogates(text: string): string {
@@ -145,22 +145,64 @@ export function convertResponsesMessages<TApi extends Api>(
 		return `${normalizedCallId}|${normalizedItemId}`;
 	};
 
+	const normalized = resolveTranscript(
+		normalizeContext(context),
+		model.compat && "supportsMidConvoSystemMessages" in model.compat
+			? model.compat.supportsMidConvoSystemMessages
+			: false,
+	);
 	const transformedMessages = normalizeResponsesMessageHistory(
-		context.messages,
+		normalized.messages,
 		model as Model<Api>,
 		normalizeToolCallId as never,
 	);
 	const includeSystemPrompt = options?.includeSystemPrompt ?? true;
-	if (includeSystemPrompt && context.systemPrompt) {
-		messages.push({
-			role: model.reasoning ? "developer" : "system",
-			content: sanitizeSurrogates(context.systemPrompt),
-		});
-	}
 
 	let msgIndex = 0;
 	for (const msg of transformedMessages) {
-		if (msg.role === "user") {
+		if (msg.role === "system") {
+			const leading = msgIndex === 0;
+			if (!leading) {
+				const deferredTools: Tool[] = [];
+				for (const name of (msg.toolsAdded ?? []).map((tool) => tool.name)) {
+					const tool = options?.deferredTools?.get(name);
+					if (!tool || loadedToolNames.has(name)) continue;
+					loadedToolNames.add(name);
+					deferredTools.push(tool);
+				}
+				if (deferredTools.length > 0 && options?.deferredToolsMode === "additional-tools") {
+					messages.push({
+						type: "additional_tools",
+						role: "developer",
+						tools: convertResponsesTools(deferredTools, options.toolOptions),
+					} as unknown as ResponseInputItem);
+				} else if (deferredTools.length > 0 && options?.deferredToolsMode === "tool-search") {
+					const names = deferredTools.map((tool) => tool.name);
+					const searchCallId = `pi_tool_load_${shortHash(`system:${msgIndex}:${names.join(",")}`)}`;
+					messages.push({
+						type: "tool_search_call",
+						call_id: searchCallId,
+						execution: "client",
+						status: "completed",
+						arguments: { query: names.join(" "), limit: names.length },
+					} satisfies ResponseInputItem);
+					messages.push({
+						type: "tool_search_output",
+						call_id: searchCallId,
+						execution: "client",
+						status: "completed",
+						tools: convertResponsesTools(deferredTools, {
+							...options.toolOptions,
+							deferLoading: true,
+						}),
+					} satisfies ResponseToolSearchOutputItemParam);
+				}
+			}
+			if (!leading || includeSystemPrompt) {
+				const text = leading ? getSystemMessageText(msg) : renderSystemMessageUpdate(msg);
+				if (text) messages.push({ role: model.reasoning ? "developer" : "system", content: sanitizeSurrogates(text) });
+			}
+		} else if (msg.role === "user") {
 			if (typeof msg.content === "string") {
 				messages.push({ role: "user", content: [{ type: "input_text", text: sanitizeSurrogates(msg.content) }] });
 			} else {
@@ -280,41 +322,6 @@ export function convertResponsesMessages<TApi extends Api>(
 				call_id: callId!,
 				output,
 			} as ResponseInput[number]);
-
-			const deferredTools: Tool[] = [];
-			for (const name of msg.addedToolNames ?? []) {
-				const tool = options?.deferredTools?.get(name);
-				if (!tool || loadedToolNames.has(name)) continue;
-				loadedToolNames.add(name);
-				deferredTools.push(tool);
-			}
-			if (deferredTools.length > 0 && options?.deferredToolsMode === "additional-tools") {
-				messages.push({
-					type: "additional_tools",
-					role: "developer",
-					tools: convertResponsesTools(deferredTools, options.toolOptions),
-				} as unknown as ResponseInputItem);
-			} else if (deferredTools.length > 0 && options?.deferredToolsMode === "tool-search") {
-				const names = deferredTools.map((tool) => tool.name);
-				const searchCallId = `pi_tool_load_${shortHash(`${msg.toolCallId}:${names.join(",")}`)}`;
-				messages.push({
-					type: "tool_search_call",
-					call_id: searchCallId,
-					execution: "client",
-					status: "completed",
-					arguments: { query: names.join(" "), limit: names.length },
-				} satisfies ResponseInputItem);
-				messages.push({
-					type: "tool_search_output",
-					call_id: searchCallId,
-					execution: "client",
-					status: "completed",
-					tools: convertResponsesTools(deferredTools, {
-						...options.toolOptions,
-						deferLoading: true,
-					}),
-				} satisfies ResponseToolSearchOutputItemParam);
-			}
 		}
 		msgIndex++;
 	}

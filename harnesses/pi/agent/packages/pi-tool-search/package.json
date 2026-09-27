@@ -24,8 +24,8 @@
     "video": "https://pi.luan.sh/media/previews/pi-tool-search-14df51a672aa.mp4"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": "*",
-    "@earendil-works/pi-tui": "*"
+    "@earendil-works/pi-coding-agent": ">=0.87.1",
+    "@earendil-works/pi-tui": ">=0.87.1"
   },
   "dependencies": {
     "@luan.sh/pi-code-mode": "workspace:*",
@@ -38,8 +38,8 @@
     "@luan.sh/pi-xsettings"
   ],
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.84.2",
-    "@earendil-works/pi-tui": "0.84.2",
+    "@earendil-works/pi-coding-agent": "0.87.1",
+    "@earendil-works/pi-tui": "0.87.1",
     "@types/bun": "^1.3.0",
     "typescript": "^6.0.3"
   },

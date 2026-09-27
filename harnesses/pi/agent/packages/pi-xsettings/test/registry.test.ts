@@ -302,6 +302,9 @@ describe("structural registries", () => {
 		let shortcut: { key: string; handler: (ctx: ExtensionContext) => void | Promise<void> } | undefined;
 		attachActionShortcuts(
 			{
+				on() {
+					return () => {};
+				},
 				registerShortcut(key, options) {
 					shortcut = { key, handler: options.handler };
 				},
@@ -328,6 +331,9 @@ describe("structural registries", () => {
 		const registry = ensureActionsRegistry();
 		attachActionShortcuts(
 			{
+				on() {
+					return () => {};
+				},
 				registerShortcut(key, options) {
 					shortcuts.push({ key, handler: options.handler });
 				},
@@ -370,6 +376,9 @@ describe("structural registries", () => {
 		});
 		attachActionShortcuts(
 			{
+				on() {
+					return () => {};
+				},
 				registerShortcut(_key, options) {
 					shortcut = { handler: options.handler };
 				},

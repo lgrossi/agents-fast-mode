@@ -14,7 +14,7 @@ test("modal mounts route local component input and own registration disposal", (
 		render: (width) => [`width:${width}`],
 		invalidate: () => invalidations++,
 		handleInput: (data) => inputs.push(data),
-		handleMouse: (event) => {
+		onMouse: (event) => {
 			pointerEvents.push(event);
 			return true;
 		},
@@ -69,7 +69,7 @@ test("modal mounts leave unsupported pointer phases to the shield", () => {
 		render: () => [],
 		invalidate() {},
 		handleInput() {},
-		handleMouse: () => true,
+		onMouse: () => true,
 	};
 	mountModalOverlay(component, {
 		registry,

@@ -1,3 +1,4 @@
+import { getCurrentTools, normalizeContext } from "@earendil-works/pi-ai";
 import {
 	appendAssistantMessageDiagnostic,
 	createAssistantMessageDiagnostic,
@@ -264,7 +265,10 @@ export function createCodexTransportStream<TApi extends Api>(
 	deps: CodexTransportRecoveryDependencies,
 ): AssistantMessageEventStream {
 	const runtimeConfig = deps.getConfig?.();
-	const grammarToolInputProperties = createGrammarToolInputProperties(context.tools, true);
+	const grammarToolInputProperties = createGrammarToolInputProperties(
+		getCurrentTools(normalizeContext(context).messages),
+		true,
+	);
 	const preferredTransport = getEffectiveCodexTransport(options?.transport, runtimeConfig?.openai);
 	const effectiveTransport = getEffectiveCodexTransport(options?.transport, runtimeConfig?.openai, options?.sessionId);
 	const effectiveOptions: OpenAICodexStreamOptions | undefined = options
@@ -440,7 +444,7 @@ export function createCodexTransportStream<TApi extends Api>(
 								error,
 								{
 									configuredTransport: preferredTransport,
-									fallbackTransport: fallbackArmed ? "sse" : undefined,
+									...(fallbackArmed ? { fallbackTransport: "sse" } : {}),
 									eventsEmitted: websocketStarted,
 									phase: websocketStarted ? "after_message_stream_start" : "before_message_stream_start",
 									requestBytes: new TextEncoder().encode(bodyJson).byteLength,

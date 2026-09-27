@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Api, Model } from "@earendil-works/pi-ai";
+import { getCurrentSystemPrompt, type Api, type Model } from "@earendil-works/pi-ai";
 import registerNativeCompaction from "../src/compaction/extension.ts";
 import { DEFAULT_CODEX_NATIVE_SETTINGS } from "../src/contributions/xsettings.ts";
 import { serializeMessagesToResponsesInput } from "../src/compaction/serializer.ts";
@@ -8,7 +8,7 @@ import { createNativeCompactionDetails, NATIVE_COMPACTION_SHIM_SUMMARY } from ".
 // type-boundary: These records model the small subset of the external Pi extension API used by this harness.
 type TestRecord = Record<string, unknown>;
 type Hook = (event: TestRecord, context: TestRecord) => unknown;
-type CompactionStreamContext = TestRecord & { systemPrompt: string };
+type CompactionStreamContext = TestRecord & { messages: { role: string }[] };
 type CompactionStreamOptions = {
 	onPayload: (payload: TestRecord) => Promise<TestRecord | undefined>;
 	onOutputItemDone: (item: TestRecord) => void;
@@ -335,7 +335,7 @@ test("the compaction request rebuilds the current instructions, developer guidan
 				model: model.id,
 				store: false,
 				stream: true,
-				instructions: context.systemPrompt,
+				instructions: getCurrentSystemPrompt(context.messages),
 				input: [],
 				text: { verbosity: "low" },
 				include: ["reasoning.encrypted_content"],

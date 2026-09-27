@@ -1,3 +1,4 @@
+import { normalizeContext } from "@earendil-works/pi-ai";
 import type {
 	Api,
 	AssistantMessage,
@@ -63,7 +64,7 @@ export type ExecuteRemoteCompactionV2Options = {
 function resolveStream(options: ExecuteRemoteCompactionV2Options): V2Stream | undefined {
 	const nativeProvider = options.modelRegistry.getRegisteredNativeProvider(options.runtime.provider);
 	return nativeProvider && options.runtime.currentModel.api === options.runtime.api
-		? (model, context, streamOptions) => nativeProvider.streamSimple(model, context, streamOptions)
+		? (model, context, streamOptions) => nativeProvider.streamSimple(model, normalizeContext(context), streamOptions)
 		: undefined;
 }
 

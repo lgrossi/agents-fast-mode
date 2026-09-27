@@ -75,7 +75,7 @@ export interface ActionPanelFooter {
 	/** Handle keyboard input; return true when the footer consumes it. */
 	handleInput?(data: string): boolean | undefined;
 	/** Handle footer-local pointer input; return true when consumed. */
-	handleMouse?(event: ActionPanelMouseEvent): boolean;
+	onMouse?(event: ActionPanelMouseEvent): boolean;
 }
 
 /** Geometry for the most recent render, in coordinates local to its first cell. */
@@ -133,7 +133,7 @@ const MIN_WIDTH = 12;
  *
  * The component deliberately does not know how the overlay is positioned.
  * Consumers translate screen mouse coordinates to overlay-local coordinates,
- * then pass them to handleMouse().
+ * then pass them to onMouse().
  */
 export class ActionPanel<Value extends string = string> implements Component {
 	private selectedIndex: number;
@@ -179,7 +179,7 @@ export class ActionPanel<Value extends string = string> implements Component {
 	 * @param event Pointer lifecycle event to route to rows or the footer.
 	 * @returns True when the event belongs to the panel.
 	 */
-	handleMouse(event: ActionPanelMouseEvent): boolean {
+	onMouse(event: ActionPanelMouseEvent): boolean {
 		if (event.type === "leave") {
 			const changed = this.hoverIndex !== undefined || this.pressedIndex !== undefined;
 			this.hoverIndex = undefined;
@@ -216,9 +216,9 @@ export class ActionPanel<Value extends string = string> implements Component {
 			};
 			if (!this.footerPointerInside) {
 				this.footerPointerInside = true;
-				this.config.footer?.handleMouse?.({ ...translated, type: "enter" });
+				this.config.footer?.onMouse?.({ ...translated, type: "enter" });
 			}
-			if (event.type !== "enter") this.config.footer?.handleMouse?.(translated);
+			if (event.type !== "enter") this.config.footer?.onMouse?.(translated);
 			return true;
 		}
 		this.leaveFooter(event);
@@ -406,7 +406,7 @@ export class ActionPanel<Value extends string = string> implements Component {
 	private leaveFooter(event: ActionPanelMouseEvent): void {
 		if (!this.footerPointerInside) return;
 		this.footerPointerInside = false;
-		this.config.footer?.handleMouse?.({
+		this.config.footer?.onMouse?.({
 			...event,
 			type: "leave",
 			row: -1,

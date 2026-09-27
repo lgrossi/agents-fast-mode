@@ -68,7 +68,7 @@ Rules the loader applies:
 Which action IDs exist depends on the extensions you have installed; each
 extension's README lists its IDs. Bindings only take effect when a shortcut
 host is installed: `pi install npm:@luan.sh/pi-xsettings` provides one that
-calls `pi.registerShortcut()` for every configured key. Without a host, the
+uses Pi shortcuts for global actions and terminal input listeners for contextual actions. Without a host, the
 registry still works but nothing binds global keys.
 
 ## For extension authors
@@ -113,9 +113,18 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 type ActionRegistration = {
   id: string;
   description: string;
+  isActive?(): boolean;
   run(ctx: ExtensionContext): void | Promise<void>;
 };
 ```
+
+An optional `isActive` predicate makes a shortcut contextual. The host checks it
+on each keypress; when false, the key reaches Pi's normal handling. For example,
+a voice mute action can share a key with copy while no call is active. Keep the
+presence of the predicate fixed for an action ID until extensions reload. These
+contextual keys work throughout the TUI and are not listed by Pi's `/hotkeys`;
+the feature should show them in its active controls. Hosts predating this optional
+field treat actions as global, so contextual actions require an updated host.
 
 Use a stable, namespaced ID (for example `myext.panel.open`). Register during
 extension setup and keep the disposer for reload and shutdown:

@@ -84,7 +84,8 @@ export class DialogButtonBar<Value extends string = string> implements Component
 	 * @param event Pointer lifecycle event to route to buttons.
 	 * @returns True when the pointer is over a rendered button.
 	 */
-	handleMouse(event: ActionPanelMouseEvent): boolean {
+	onMouse(event: ActionPanelMouseEvent | TuiMouseEvent): boolean {
+		if (event.type === "drag" || event.type === "wheel") return false;
 		if (event.type === "leave") {
 			const changed = this.hoverIndex !== undefined || this.pressedIndex !== undefined;
 			this.hoverIndex = undefined;
@@ -112,21 +113,6 @@ export class DialogButtonBar<Value extends string = string> implements Component
 			if (button && pressed === button.index) this.activate(button.index);
 		}
 		return button !== undefined;
-	}
-
-	/**
-	 * Structural pointer entry point used by pi-libtui's shared component host.
-	 * @param event Component-local pointer event from the shared host.
-	 * @returns True when a supported event targets a rendered button.
-	 */
-	onMouse(event: TuiMouseEvent): boolean {
-		if (event.type === "drag" || event.type === "wheel") return false;
-		return this.handleMouse({
-			type: event.type,
-			row: event.row,
-			col: event.col,
-			button: event.button,
-		});
 	}
 
 	/** @returns A defensive copy of the latest button geometry, if rendered. */

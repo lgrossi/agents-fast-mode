@@ -13,7 +13,7 @@ export interface ModalOverlayMouseEvent {
 /** A modal component that accepts overlay-local keyboard and pointer input. */
 export interface ModalOverlayComponent extends Component, Focusable {
 	handleInput(data: string): void;
-	handleMouse(event: ModalOverlayMouseEvent): boolean;
+	onMouse(event: ModalOverlayMouseEvent): boolean;
 	dispose?(): void;
 }
 
@@ -72,7 +72,7 @@ class MountedModalOverlay implements MountedModalOverlayComponent {
 			getRect: options.getRect,
 			onMouse: (event) => {
 				const translated = componentMouseEvent(event);
-				return translated ? component.handleMouse(translated) : false;
+				return translated ? component.onMouse(translated) : false;
 			},
 		});
 		this.removeShield = registerModalPointerShield(options.registry, {

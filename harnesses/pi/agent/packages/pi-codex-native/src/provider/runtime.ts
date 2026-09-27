@@ -1,3 +1,4 @@
+import { getCurrentTools, normalizeContext } from "@earendil-works/pi-ai";
 import { createHash } from "node:crypto";
 import type {
 	Api,
@@ -308,7 +309,10 @@ export class CodexProviderRuntime {
 		const diagnostics = () => this.getDiagnostics();
 		const deps: CodexTransportRecoveryDependencies = {
 			prepareRequestBody: async (requestModel, requestContext, requestOptions) => {
-				const grammarToolInputProperties = createGrammarToolInputProperties(requestContext.tools, true);
+				const grammarToolInputProperties = createGrammarToolInputProperties(
+					getCurrentTools(normalizeContext(requestContext).messages),
+					true,
+				);
 				let body = buildRequestBody(requestModel, requestContext, {
 					...requestOptions,
 					codeModeToolNames: listCodeModeToolNames(),

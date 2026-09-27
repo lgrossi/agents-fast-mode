@@ -73,8 +73,8 @@ describe("ReactionDialog", () => {
 		view.render(44);
 		const row = view.getOptionRects()[1]!;
 		const rowCol = row.x + 2;
-		view.handleMouse(mouse("press", row.y, rowCol));
-		view.handleMouse(mouse("release", row.y, rowCol));
+		view.onMouse(mouse("press", row.y, rowCol));
+		view.onMouse(mouse("release", row.y, rowCol));
 		expect(result).toEqual({ action: "save", text: "🚫 Rejected" });
 	});
 
@@ -87,8 +87,8 @@ describe("ReactionDialog", () => {
 		view.render(44);
 		const add = view.getButtonRects().find((button) => button.value === "save")!;
 		const addCol = add.x + Math.floor(add.width / 2);
-		view.handleMouse(mouse("press", add.y, addCol));
-		view.handleMouse(mouse("release", add.y, addCol));
+		view.onMouse(mouse("press", add.y, addCol));
+		view.onMouse(mouse("release", add.y, addCol));
 		expect(result).toEqual({ action: "save", text: "🚫 Rejected" });
 	});
 

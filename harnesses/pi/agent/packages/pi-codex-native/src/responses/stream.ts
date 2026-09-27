@@ -374,14 +374,14 @@ export async function processResponsesStream<TApi extends Api>(
 					state?.kind === "custom_tool_call"
 						? {
 								...state.block,
-								arguments: { [property]: customInput },
+								arguments: { [property]: customInput ?? "" },
 								...(customItem.namespace !== undefined ? { namespace: customItem.namespace } : {}),
 							}
 						: {
 								type: "toolCall",
 								id: `${customItem.call_id}|${customItem.id ?? ""}`,
 								name: customItem.name,
-								arguments: { [property]: customInput },
+								arguments: { [property]: customInput ?? "" },
 								...(customItem.namespace !== undefined ? { namespace: customItem.namespace } : {}),
 							};
 				if (state?.kind !== "custom_tool_call") {

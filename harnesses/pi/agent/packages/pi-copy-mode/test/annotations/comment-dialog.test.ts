@@ -137,8 +137,8 @@ describe("CommentDialog", () => {
 		const add = view.getButtonRects().find((button) => button.value === "save");
 		expect(add).toBeDefined();
 		const col = add!.x + Math.floor(add!.width / 2);
-		expect(view.handleMouse(mouse("press", add!.y, col))).toBe(true);
-		expect(view.handleMouse(mouse("release", add!.y, col))).toBe(true);
+		expect(view.onMouse(mouse("press", add!.y, col))).toBe(true);
+		expect(view.onMouse(mouse("release", add!.y, col))).toBe(true);
 		expect(result).toEqual({ action: "save", text: "mouse save" });
 	});
 
@@ -158,7 +158,7 @@ describe("CommentDialog", () => {
 		view.render(60);
 		for (const button of view.getButtonRects()) {
 			backgrounds.length = 0;
-			view.handleMouse(mouse("move", button.y, button.x + Math.floor(button.width / 2)));
+			view.onMouse(mouse("move", button.y, button.x + Math.floor(button.width / 2)));
 			const rendered = view.render(60).join("\n");
 			expect(rendered).toContain(tuiTheme(hoverTheme).bgAnsi("surface.selected"));
 		}

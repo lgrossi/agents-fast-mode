@@ -1,4 +1,13 @@
-import { clampThinkingLevel, type Api, type Context, type Model } from "@earendil-works/pi-ai";
+import {
+	getInitialSystemMessage,
+	getSystemMessageText,
+	normalizeContext,
+	resolveTranscript,
+	clampThinkingLevel,
+	type Api,
+	type Context,
+	type Model,
+} from "@earendil-works/pi-ai";
 import {
 	CODEX_TOOL_CALL_PROVIDERS,
 	convertResponsesMessages,
@@ -31,6 +40,12 @@ export function buildRequestBody<TApi extends Api>(
 	context: Context,
 	options?: OpenAICodexStreamOptions,
 ): ResponsesBody {
+	context = resolveTranscript(
+		normalizeContext(context),
+		model.compat && "supportsMidConvoSystemMessages" in model.compat
+			? model.compat.supportsMidConvoSystemMessages
+			: false,
+	);
 	const compat = model.compat as
 		| {
 				supportsStrictMode?: boolean | undefined;
@@ -64,7 +79,9 @@ export function buildRequestBody<TApi extends Api>(
 		model: model.id,
 		store: false,
 		stream: true,
-		instructions: context.systemPrompt,
+		instructions: getSystemMessageText(
+			getInitialSystemMessage(context.messages) ?? { role: "system", content: "", timestamp: 0 },
+		),
 		input: messages,
 		text: {
 			verbosity: ((options as { textVerbosity?: string | undefined } | undefined)?.textVerbosity ?? "low") as string,
