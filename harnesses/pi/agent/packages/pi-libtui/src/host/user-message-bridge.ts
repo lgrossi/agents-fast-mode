@@ -60,7 +60,8 @@ export function installUserMessageBridge(): () => void {
 		result.unshift(gutter + nativeSurfaceCap(lines[0]!, "▄".repeat(fittedWidth)));
 		result.push(gutter + nativeSurfaceCap(lines[lines.length - 1]!, "▀".repeat(fittedWidth)));
 		result[0] = `\x1b]133;A\x07${result[0]}`;
-		result[result.length - 1] += "\x1b]133;B\x07\x1b]133;C\x07";
+		// Pi strips only leading transcript markers when drawing fullscreen frames.
+		result[result.length - 1] = `\x1b]133;B\x07\x1b]133;C\x07${result[result.length - 1]}`;
 		return result;
 	};
 	const wrappedMouse: typeof handleMouse = function (this: UserMessageComponent, event) {

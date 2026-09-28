@@ -1,15 +1,93 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { initTheme, UserMessageComponent } from "@earendil-works/pi-coding-agent";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import { ProcessTerminal, stripTerminalSequences, Text, TuiAltScreen, visibleWidth } from "@earendil-works/pi-tui";
+import { Terminal as VirtualTerminal } from "@xterm/headless";
 import { configureTuiAppearance, DEFAULT_TUI_APPEARANCE } from "../src/appearance.ts";
 import { backgroundAnsiAtColumn } from "../src/decoration/powerline-pill.ts";
 import { installUserMessageBridge } from "../src/host/user-message-bridge.ts";
 
 const disposers: Array<() => void> = [];
+
+class CapturedTerminal extends ProcessTerminal {
+	output = "";
+	width = 80;
+	override get columns() {
+		return this.width;
+	}
+	override get rows() {
+		return 24;
+	}
+	override start(): void {}
+	override stop(): void {}
+	override write(data: string): void {
+		this.output += data;
+	}
+}
+
+test("incremental bubble redraws match clean frames after overlays, resizing, and content changes", async () => {
+	disposers.push(installUserMessageBridge());
+	configureTuiAppearance({ userMessageBubbles: true });
+	const terminal = new CapturedTerminal();
+	const tui = new TuiAltScreen(terminal);
+	const screen = new VirtualTerminal({ cols: terminal.columns, rows: terminal.rows, allowProposedApi: true });
+	const snapshot = (target: VirtualTerminal) =>
+		Array.from({ length: target.rows }, (_, row) => target.buffer.active.getLine(row)?.translateToString(true));
+	const checkFrame = async () => {
+		tui.renderNow();
+		await new Promise<void>((resolve) => screen.write(terminal.output, resolve));
+		terminal.output = "";
+		tui.renderNow(true);
+		const clean = new VirtualTerminal({ cols: terminal.columns, rows: terminal.rows, allowProposedApi: true });
+		try {
+			await new Promise<void>((resolve) => clean.write(terminal.output, resolve));
+			expect(snapshot(screen)).toEqual(snapshot(clean));
+		} finally {
+			clean.dispose();
+			terminal.output = "";
+		}
+	};
+	try {
+		for (let index = 0; index < 12; index++)
+			tui.addChild(new UserMessageComponent(`Message ${index} **with formatting**`));
+		tui.start();
+		await checkFrame();
+		const overlay = tui.showOverlay(new Text("Settings\nCursor\nImages\nCodex Native", 1, 1), { width: 45 });
+		await checkFrame();
+		overlay.hide();
+		await checkFrame();
+		terminal.width = 45;
+		screen.resize(45, terminal.rows);
+		await checkFrame();
+		tui.clear();
+		tui.addChild(new UserMessageComponent("ship"));
+		await checkFrame();
+		configureTuiAppearance({ userMessageBubbles: false });
+		await checkFrame();
+	} finally {
+		tui.stop();
+		screen.dispose();
+	}
+});
 beforeEach(() => initTheme("dark", false));
 afterEach(() => {
 	for (const dispose of disposers.splice(0)) dispose();
 	configureTuiAppearance(DEFAULT_TUI_APPEARANCE);
+});
+
+test("fullscreen bubbles do not emit terminal transcript zone markers", () => {
+	disposers.push(installUserMessageBridge());
+	configureTuiAppearance({ userMessageBubbles: true });
+	const terminal = new CapturedTerminal();
+	const tui = new TuiAltScreen(terminal);
+	tui.addChild(new UserMessageComponent("ship"));
+	try {
+		tui.start();
+		tui.renderNow();
+		expect(terminal.output).toContain("ship");
+		expect(terminal.output).not.toContain("\x1b]133;");
+	} finally {
+		tui.stop();
+	}
 });
 
 test("compact half-block bubbles toggle live without changing native messages", () => {
