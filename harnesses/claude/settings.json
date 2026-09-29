@@ -7,43 +7,9 @@
     "commit": "",
     "pr": ""
   },
-  "model": "claude-fable-5-1[1m]",
   "permissions": {
     "defaultMode": "bypassPermissions"
   },
-  "statusLine": {
-    "type": "command",
-    "command": "uv run $HOME/.claude/statusline.py",
-    "padding": 0,
-    "refreshInterval": 5
-  },
-  "enabledPlugins": {
-    "clangd-lsp@claude-plugins-official": true,
-    "context7@claude-plugins-official": true,
-    "gopls-lsp@claude-plugins-official": true,
-    "linear@claude-plugins-official": false,
-    "lua-lsp@claude-plugins-official": false,
-    "notion@claude-plugins-official": false,
-    "pyright-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": false,
-    "swift-lsp@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "claude-plugins-official": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-official"
-      }
-    }
-  },
-  "feedbackDrafts": "notify",
-  "askUserQuestionTimeout": "never",
-  "dialogExpiry": "never",
-  "tui": "fullscreen",
-  "autoMemoryEnabled": false,
-  "autoDreamEnabled": false,
-  "skipDangerousModePermissionPrompt": true,
   "hooks": {
     "SessionStart": [
       {
@@ -125,5 +91,48 @@
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "uv run $HOME/.claude/statusline.py",
+    "padding": 0,
+    "refreshInterval": 5
+  },
+  "enabledPlugins": {
+    "clangd-lsp@claude-plugins-official": true,
+    "gopls-lsp@claude-plugins-official": true,
+    "linear@claude-plugins-official": true,
+    "lua-lsp@claude-plugins-official": true,
+    "notion@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "swift-lsp@claude-plugins-official": true,
+    "slack@claude-plugins-official": true,
+    "github@claude-plugins-official": true,
+    "datadog@claude-plugins-official": true,
+    "sentry@claude-plugins-official": true,
+    "figma@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      }
+    }
+  },
+  "feedbackDrafts": "notify",
+  "modelSettings": {
+    "claude-opus-5-5": {
+      "effortLevel": "xhigh"
+    }
+  },
+  "askUserQuestionTimeout": "never",
+  "dialogExpiry": "never",
+  "tui": "fullscreen",
+  "autoMemoryEnabled": false,
+  "autoDreamEnabled": false,
+  "skipDangerousModePermissionPrompt": true,
+  "theme": "dark",
+  "switchModelsOnFlag": false
 }
