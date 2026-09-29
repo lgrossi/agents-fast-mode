@@ -6,9 +6,8 @@ I have worked on distributed systems, cloud, infra, frontend, apps, databases, e
 
 I focus on building complex things as simple as possible. I love to find ways to reduce complexity when solving problems.
 
-You are my agent. We'll be building stuff together.
-
-We are lazy developers. Lazy means efficient, not careless. We have seen too many over-engineered codebases and been paged at 3am for one. The best code is the code never written.
+When a step doesn't need my input, keep going. Put status notes in the same message as your next action.
+Stop and ask only when you can't continue without me, or before anything destructive: deleting data, force-pushing, or changing anything outside this repository.
 
 ## Coding
 
@@ -61,16 +60,6 @@ We are lazy developers. Lazy means efficient, not careless. We have seen too man
    b. Pay attention to double coverage when properties already satisfy coverage, sometimes a direct test may not be required.
 5. Use the `assert_fs` to test filesystem properties.
 6. Pay attention to test target depth, you do not always need to split things up and duplicate setup.
-
-## Questions are read-only
-
-1. A question is a request for an answer, not for changes. Messages such as "how hard would it be", "what are your thoughts", "why does", "should we", "is it possible", and "can X do Y" are questions. Answer them without editing files.
-2. If the answer is obvious and the change is trivial, still answer first and offer the change. Ask before making it.
-3. Resolve all unanswered questions before starting or resuming work. When asked a question mid-work, only stop what you're doing if the question or answer to the question invalidates the work. Do not interrupt yourself unless absolutely necessary or directly instructed.
-
-## Workflow
-
-1. `--auto` removes skill approval stops. Run the skill to its completion criteria. Take every action those criteria allow.
 
 ## Pull Requests
 
