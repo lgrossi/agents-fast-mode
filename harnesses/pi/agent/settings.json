@@ -15,6 +15,7 @@
     "packages/pi-xsettings",
     "packages/pi-subagents",
     "packages/pi-developer-messages",
+    "packages/pi-conversation",
     "packages/pi-codex-native",
     "packages/pi-skills",
     "packages/pi-exec-command",
@@ -49,6 +50,10 @@
     "mermaid": "streaming"
   },
   "defaultTools": [
+    "request_user_input_async",
+    "send_message_to_user_async",
+    "clock__sleep",
+    "clock__curr_time",
     "codemode",
     "skill",
     "web__run",

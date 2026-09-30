@@ -60,5 +60,5 @@ pi-voice.v3Voice = "sol"
 pi.steeringMode = "one-at-a-time"
 
 [tools]
-pi.defaultTools = ["codemode", "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image"]
+pi.defaultTools = ["request_user_input_async", "send_message_to_user_async", "clock__sleep", "clock__curr_time", "codemode", "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image"]
 pi-skills.catalogVisibility = "when-active"
