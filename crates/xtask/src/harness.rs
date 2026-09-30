@@ -312,6 +312,56 @@ fn create_file_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
     std::os::windows::fs::symlink_file(source, target)
 }
 
+fn preserve_target(target: &Path, safe_root: &Path) -> Result<PathBuf> {
+    let relative = target.strip_prefix(safe_root)?;
+    let directory = safe_root.join(".agents-harness-backups").join(relative);
+    ensure_safe_target_parent(Operation::Setup, &directory.join("entry"), safe_root)?;
+    // Reserve a fresh directory atomically so repeated repairs never overwrite a backup.
+    for revision in 1_u64.. {
+        let slot = directory.join(revision.to_string());
+        match fs::create_dir(&slot) {
+            Ok(()) => {
+                let backup = slot.join("original");
+                fs::rename(target, &backup).with_context(|| {
+                    format!("preserve {} at {}", target.display(), backup.display())
+                })?;
+                eprintln!("Preserved {} at {}", target.display(), backup.display());
+                return Ok(backup);
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(error) => return Err(error).context("reserve harness backup"),
+        }
+    }
+    bail!("exhausted harness backup revisions")
+}
+
+fn install_link(
+    source: &Path,
+    target: &Path,
+    safe_root: &Path,
+    create: fn(&Path, &Path) -> std::io::Result<()>,
+) -> Result<()> {
+    if exact_link(source, target)? {
+        return Ok(());
+    }
+    let backup = path_status(target)?
+        .map(|_| preserve_target(target, safe_root))
+        .transpose()?;
+    if let Err(error) = create(source, target) {
+        if let Some(backup) = backup {
+            // Do not overwrite a target installed by another process during repair.
+            if path_status(target)?.is_none() {
+                fs::rename(&backup, target).with_context(|| {
+                    format!("restore {} from {}", target.display(), backup.display())
+                })?;
+            }
+        }
+        return Err(error)
+            .with_context(|| format!("link {} -> {}", target.display(), source.display()));
+    }
+    Ok(())
+}
+
 fn manage_link(operation: Operation, source: &Path, target: &Path, safe_root: &Path) -> Result<()> {
     ensure_safe_target_parent(operation, target, safe_root)?;
     if !matches!(operation, Operation::Unlink) && path_status(source)?.is_none() {
@@ -321,7 +371,11 @@ fn manage_link(operation: Operation, source: &Path, target: &Path, safe_root: &P
     match operation {
         Operation::Check => {
             if !exact_link(source, target)? {
-                bail!("invalid managed link: {}", target.display());
+                bail!(
+                    "invalid managed link: {} (expected -> {})",
+                    target.display(),
+                    source.display()
+                );
             }
         }
         Operation::Unlink => {
@@ -331,24 +385,7 @@ fn manage_link(operation: Operation, source: &Path, target: &Path, safe_root: &P
             }
         }
         Operation::Setup => {
-            if let Some(file_type) = path_status(target)? {
-                if exact_link(source, target)? {
-                    return Ok(());
-                }
-                let suffix = if file_type.is_symlink() {
-                    format!(
-                        " -> {}",
-                        fs::read_link(target)
-                            .with_context(|| format!("read link {}", target.display()))?
-                            .display()
-                    )
-                } else {
-                    String::new()
-                };
-                bail!("refusing to replace {}{suffix}", target.display());
-            }
-            create_file_symlink(source, target)
-                .with_context(|| format!("link {} -> {}", target.display(), source.display()))?;
+            install_link(source, target, safe_root, create_file_symlink)?;
         }
     }
     Ok(())
@@ -642,32 +679,7 @@ fn manage_dependency_link(
             }
         }
         Operation::Setup => {
-            if exact_link(source, target)? {
-                return Ok(());
-            }
-            if let Some(file_type) = path_status(target)? {
-                let suffix = if file_type.is_symlink() {
-                    format!(
-                        " -> {}",
-                        fs::read_link(target)
-                            .with_context(|| format!("read link {}", target.display()))?
-                            .display()
-                    )
-                } else {
-                    String::new()
-                };
-                bail!(
-                    "refusing to replace runtime dependency: {}{suffix}",
-                    target.display()
-                );
-            }
-            create_directory_symlink(source, target).with_context(|| {
-                format!(
-                    "link runtime dependency {} -> {}",
-                    target.display(),
-                    source.display()
-                )
-            })?;
+            install_link(source, target, safe_root, create_directory_symlink)?;
         }
     }
     Ok(())

@@ -28,7 +28,7 @@
 5. Never manage Pi credentials, sessions, caches, model stores, or other generated runtime state. Keep generated state ignored and out of version control.
 6. Keep `~/.pi/agent/settings.json` as an intentional mutable symlink to `harnesses/pi/agent/settings.json`. Pi may update the repo-owned settings file through that symlink.
 7. Seed the real mutable `~/.codex/config.toml` from `harnesses/codex/config.toml.seed` only when the target does not exist.  Never overwrite an existing target.
-8. Refuse setup when a managed link path contains a real file or a symlink to the wrong target.
+8. Preserve occupied managed paths in a fresh backup before repairing their links. Refuse unsafe parent paths, never overwrite backups, and restore the original when linking fails and the target remains absent.
 9. Make `just unlink` remove only exact managed symlinks owned by this repository.
 
 ## Required validation

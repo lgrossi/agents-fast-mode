@@ -614,42 +614,91 @@ fn stale_local_dependency_cleanup_handles_symlinked_repository_path(
 
 #[rstest]
 #[case::real_file("file")]
+#[case::real_directory("directory")]
 #[case::wrong_symlink("symlink")]
-fn setup_refuses_occupied_dependency_target(
+#[case::dangling_symlink("dangling")]
+fn setup_preserves_and_repairs_occupied_targets(
     fixture: HarnessFixture,
     #[case] occupied_by: &str,
+    #[values(false, true)] dependency: bool,
 ) -> Result<()> {
     fixture.write_managed(&[], &["packages"]);
-    let (_package, _dependency) = fixture.package("pi-example", "runtime-dependency");
-    let target = fixture.target_dependency("pi-example", "runtime-dependency");
-    fs::create_dir_all(target.parent().expect("dependency target parent"))?;
-    let suffix = if occupied_by == "file" {
-        fs::write(&target, "user data")?;
-        String::new()
-    } else {
-        let unrelated = fixture.home.join("unrelated-dependency");
-        fs::create_dir_all(&unrelated)?;
-        create_file_symlink(&unrelated, &target)?;
-        format!(" -> {}", unrelated.display())
-    };
-
-    let error = run(Operation::Setup, &fixture.repository, &fixture.home)
-        .expect_err("occupied target must be protected");
-    assert_eq!(
-        error.to_string(),
-        format!(
-            "refusing to replace runtime dependency: {}{suffix}",
-            target.display()
+    let (package, source_dependency) = fixture.package("pi-example", "runtime-dependency");
+    let source_file = package.join("src.ts");
+    fs::write(&source_file, "managed source")?;
+    let (source, target) = if dependency {
+        (
+            source_dependency,
+            fixture.target_dependency("pi-example", "runtime-dependency"),
         )
-    );
-    if occupied_by == "file" {
-        ChildPath::new(&target).assert(predicate::path::is_file());
     } else {
-        assert_eq!(
-            fs::read_link(&target)?,
-            fixture.home.join("unrelated-dependency")
-        );
+        (
+            source_file,
+            fixture.home.join("target/packages/pi-example/src.ts"),
+        )
+    };
+    fs::create_dir_all(target.parent().expect("target parent"))?;
+    let unrelated = fixture.home.join("unrelated");
+    fs::write(&unrelated, "unrelated data")?;
+    match occupied_by {
+        "file" => fs::write(&target, "user data")?,
+        "directory" => {
+            fs::create_dir(&target)?;
+            fs::write(target.join("keep.txt"), "user data")?;
+        }
+        "symlink" => create_file_symlink(&unrelated, &target)?,
+        "dangling" => create_file_symlink(Path::new("missing-relative-target"), &target)?,
+        _ => unreachable!(),
     }
+    let backups = fixture
+        .home
+        .join(".agents-harness-backups")
+        .join(target.strip_prefix(&fixture.home)?);
+    run(Operation::Setup, &fixture.repository, &fixture.home)?;
+    run(Operation::Check, &fixture.repository, &fixture.home)?;
+    run(Operation::Setup, &fixture.repository, &fixture.home)?;
+    assert_eq!(fs::read_link(&target)?, source);
+    let original = backups.join("1/original");
+    match occupied_by {
+        "file" => assert_eq!(fs::read_to_string(&original)?, "user data"),
+        "directory" => assert_eq!(fs::read_to_string(original.join("keep.txt"))?, "user data"),
+        "symlink" => assert_eq!(fs::read_link(&original)?, unrelated),
+        "dangling" => assert_eq!(
+            fs::read_link(&original)?,
+            Path::new("missing-relative-target")
+        ),
+        _ => unreachable!(),
+    }
+    assert!(!backups.join("2").exists());
+    fs::remove_file(&target)?;
+    fs::write(&target, "second user file")?;
+    run(Operation::Setup, &fixture.repository, &fixture.home)?;
+    assert_eq!(fs::read_link(&target)?, source);
+    assert_eq!(
+        fs::read_to_string(backups.join("2/original"))?,
+        "second user file"
+    );
+    run(Operation::Unlink, &fixture.repository, &fixture.home)?;
+    assert!(fs::symlink_metadata(&target).is_err());
+    assert!(fs::symlink_metadata(&original).is_ok());
+    assert_eq!(fs::read_to_string(&unrelated)?, "unrelated data");
+    Ok(())
+}
+
+#[rstest]
+fn setup_preserves_conflict_when_backup_parent_is_a_symlink(fixture: HarnessFixture) -> Result<()> {
+    fixture.write_managed(&[], &["packages"]);
+    fixture.package("pi-example", "runtime-dependency");
+    let target = fixture.target_dependency("pi-example", "runtime-dependency");
+    fs::create_dir_all(target.parent().expect("target parent"))?;
+    fs::write(&target, "user data")?;
+    let outside = fixture.home.join("outside");
+    fs::create_dir(&outside)?;
+    create_directory_symlink(&outside, &fixture.home.join(".agents-harness-backups"))?;
+    run(Operation::Setup, &fixture.repository, &fixture.home)
+        .expect_err("backup directories must not follow symlinks");
+    assert_eq!(fs::read_to_string(&target)?, "user data");
+    assert_eq!(fs::read_dir(&outside)?.count(), 0);
     Ok(())
 }
 
