@@ -99,7 +99,9 @@ export class ToolActivity implements Component {
 		this.replaceOutput();
 		this.region = this.createRegion();
 		this.setOutputRows(this.region.getMode());
-		this.disclosureAction = new ToolDisclosureAction(options.theme, this.action, this.region, this.requestRender);
+		this.disclosureAction = new ToolDisclosureAction(options.theme, this.action, this.region, this.requestRender, () =>
+			[this.view.action.verb, this.view.action.detail, ...(this.view.action.meta ?? [])].filter(Boolean).join(" · "),
+		);
 		this.transcript = this.createTranscript();
 		this.surfacedTranscript = new BackgroundSurface({
 			theme: options.theme,

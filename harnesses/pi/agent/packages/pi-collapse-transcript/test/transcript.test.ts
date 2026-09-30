@@ -1,14 +1,26 @@
-import { afterEach, expect, test } from "bun:test";
-import { AssistantMessageComponent, initTheme, ToolExecutionComponent } from "@earendil-works/pi-coding-agent";
+import { afterEach, expect, mock, spyOn, test } from "bun:test";
+import {
+	AssistantMessageComponent,
+	initTheme,
+	type SessionEntry,
+	ToolExecutionComponent,
+} from "@earendil-works/pi-coding-agent";
 import { Container, ProcessTerminal, Text, TuiAltScreen, visibleWidth } from "@earendil-works/pi-tui";
-import { configureTuiAppearance, DEFAULT_TUI_APPEARANCE, sharedMotionScheduler } from "@luan.sh/pi-libtui";
-import { mountTranscriptProjection, type TranscriptEntry } from "@luan.sh/pi-libtui/tool";
+import { configureTuiAppearance, DEFAULT_TUI_APPEARANCE, sharedMotionScheduler, tuiTheme } from "@luan.sh/pi-libtui";
 import type { TuiMouseEvent } from "@luan.sh/pi-libtui/mouse";
-import { theme } from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
+import { mountTranscriptProjection, ToolActivity, type TranscriptEntry } from "@luan.sh/pi-libtui/tool";
+import {
+	getThemeByName,
+	theme,
+} from "../node_modules/@earendil-works/pi-coding-agent/dist/modes/interactive/theme/theme.js";
+import { ActivityTimings } from "../src/activity-timing.ts";
 import { ActivityTranscript, activitySummary } from "../src/activity-transcript.ts";
 
 initTheme("dark", false);
-afterEach(() => configureTuiAppearance(DEFAULT_TUI_APPEARANCE));
+afterEach(() => {
+	configureTuiAppearance(DEFAULT_TUI_APPEARANCE);
+	mock.restore();
+});
 
 class TestTui extends TuiAltScreen {
 	requestRender(): void {}
@@ -34,7 +46,7 @@ function message(content: Parameters<AssistantMessageComponent["updateContent"]>
 	};
 }
 
-function fixture() {
+function fixture(timings = new ActivityTimings(), now: () => number = () => 0, activeTheme = theme) {
 	configureTuiAppearance({ activityIndicator: "static", textEffect: "off" });
 	const tui = new TestTui(new ProcessTerminal());
 	const document = new Container();
@@ -45,7 +57,7 @@ function fixture() {
 	tui.addChild(document);
 	let projection: ActivityTranscript | undefined;
 	const unmount = mountTranscriptProjection(tui, (entries) => {
-		projection = new ActivityTranscript(entries, theme, () => {});
+		projection = new ActivityTranscript(entries, activeTheme, () => {}, timings, now);
 		return projection;
 	});
 	if (!unmount || !projection) throw new Error("Expected a mounted transcript");
@@ -92,7 +104,7 @@ test("native thinking and tool rows collapse together and expand with their orig
 	f.chat.addChild(tool);
 	const compact = lines(f.document);
 	expect(compact.filter(Boolean)).toHaveLength(1);
-	expect(compact.join("\n")).toContain("exec_command: cat file");
+	expect(compact.join("\n")).toContain("Inspect source");
 	expect(compact.join("\n")).toContain("2 steps");
 	expect(compact.join("\n")).not.toContain("Detailed reasoning.");
 	expect(compact.join("\n")).not.toContain("original output");
@@ -105,6 +117,54 @@ test("native thinking and tool rows collapse together and expand with their orig
 	f.unmount();
 	expect(f.document.children[2]).toBe(f.chat);
 	expect(lines(f.document).join("\n")).toContain("original output");
+});
+
+test("the active turn stays visible across completed tools, prose, and continuations until settlement", () => {
+	const f = fixture();
+	f.chat.addChild(
+		new AssistantMessageComponent(
+			message([{ type: "thinking", thinking: "**Previous turn**\n\nHistorical details." }]),
+		),
+	);
+	f.chat.addChild(new Text("Next user request", 0, 0));
+	f.projection.beginTurn();
+	const thought = new AssistantMessageComponent();
+	const source = message([{ type: "thinking", thinking: "**Current work**\n\nLive reasoning." }]);
+	thought.updateContent(source, true);
+	f.chat.addChild(thought);
+	let rendered = lines(f.document).join("\n");
+	expect(rendered).toContain("Live reasoning.");
+	expect(rendered).not.toContain("Historical details.");
+	thought.updateContent(source, false);
+	const tool = new ToolExecutionComponent("read", "live", {}, undefined, undefined, f.tui, "/tmp");
+	tool.markExecutionStarted();
+	tool.updateResult({ content: [{ type: "text", text: "Live tool progress" }], isError: false }, true);
+	f.chat.addChild(tool);
+	expect(lines(f.document).join("\n")).toContain("Live tool progress");
+	tool.updateResult({ content: [{ type: "text", text: "Completed tool output" }], isError: false });
+	f.chat.addChild(new AssistantMessageComponent(message([{ type: "text", text: "Checking the result." }])));
+	// Automatic continuation must not mark the earlier steps as historical.
+	f.projection.beginTurn();
+	f.chat.addChild(
+		new AssistantMessageComponent(message([{ type: "thinking", thinking: "**Verify result**\n\nFollow-up detail." }])),
+	);
+	rendered = lines(f.document).join("\n");
+	expect(rendered).toContain("Live reasoning.");
+	expect(rendered).toContain("Completed tool output");
+	expect(rendered).toContain("Follow-up detail.");
+	expect(rendered).toContain("Checking the result.");
+	f.projection.finishTurn();
+	rendered = lines(f.document).join("\n");
+	expect(rendered).not.toContain("Live reasoning.");
+	expect(rendered).not.toContain("Completed tool output");
+	expect(rendered).not.toContain("Follow-up detail.");
+	expect(rendered).toContain("Current work · 2 steps");
+	expect(rendered).toContain("Verify result · 1 step");
+	expect(rendered).toContain("Checking the result.");
+	// Starting another turn leaves the finished folds alone.
+	f.projection.beginTurn();
+	expect(lines(f.document).join("\n")).toBe(rendered);
+	f.unmount();
 });
 
 test("streamed updates retain expansion and update the latest thinking heading", () => {
@@ -124,6 +184,83 @@ test("streamed updates retain expansion and update the latest thinking heading",
 	thought.updateContent(source, false);
 	expect(lines(f.document).join("\n")).not.toContain("●");
 	f.unmount();
+});
+
+test("tools retain the latest thinking summary while running and after completion", () => {
+	const f = fixture();
+	const thought = new AssistantMessageComponent(
+		message([{ type: "thinking", thinking: "**First step**\n\nDetails.\n\n**Implement marker helper**\n\nNext." }]),
+	);
+	f.chat.addChild(thought);
+	const tool = new ToolExecutionComponent("exec", "one", {}, undefined, undefined, f.tui, "/tmp");
+	tool.markExecutionStarted();
+	f.chat.addChild(tool);
+	const running = lines(f.document).join("\n");
+	expect(running).toContain("Implement marker helper");
+	expect(running).toContain("2 steps");
+	expect(running).not.toContain("exec");
+	tool.updateResult({ content: [{ type: "text", text: "done" }], isError: false });
+	expect(lines(f.document).join("\n")).toContain("Implement marker helper");
+	const next = new AssistantMessageComponent();
+	next.updateContent(message([{ type: "thinking", thinking: "**Verify marker rendering**" }]), true);
+	f.chat.addChild(next);
+	expect(lines(f.document).join("\n")).toContain("Verify marker rendering");
+	f.unmount();
+});
+
+test("tool summaries use live semantic fields without flattening or pre-truncating custom renderers", () => {
+	const f = fixture();
+	let headerRenders = 0;
+	let payloadRenders = 0;
+	const detail = `${"long/path/".repeat(12)}transcript.ts`;
+	const activity = new ToolActivity({
+		theme,
+		requestRender: () => {},
+		action: {
+			render: () => {
+				headerRenders++;
+				return ["Explored", "  └ Read truncated…"];
+			},
+			invalidate() {},
+		},
+		view: {
+			action: { verb: "Read", detail, status: "succeeded" },
+			payload: {
+				kind: "component",
+				preview: {
+					render: () => {
+						payloadRenders++;
+						return ["original tool output"];
+					},
+					invalidate() {},
+				},
+			},
+		},
+	});
+	const tool = new ToolExecutionComponent(
+		"exec",
+		"one",
+		{},
+		undefined,
+		{ renderResult: () => activity },
+		f.tui,
+		"/tmp",
+	);
+	tool.updateResult({ content: [], isError: false });
+	f.chat.addChild(tool);
+	const compact = lines(f.document, 200).join("\n");
+	expect(compact).toContain(`Read · ${detail}`);
+	expect(compact).not.toMatch(/[└…]/u);
+	expect(headerRenders).toBe(0);
+	expect(payloadRenders).toBe(0);
+	// Nested renderers can update independently of the enclosing Pi result.
+	activity.update({ action: { verb: "Verified", detail: "transcript.ts", status: "succeeded" } });
+	expect(lines(f.document).join("\n")).toContain("Verified · transcript.ts");
+	click(f.projection, 1);
+	expect(lines(f.document).join("\n")).toContain("Explored");
+	expect(headerRenders).toBeGreaterThan(0);
+	f.unmount();
+	activity.dispose();
 });
 
 test("prose stays visible and separates folds; failure counts survive collapse", () => {
@@ -209,4 +346,92 @@ test("summary uses the latest supplied heading, bounds text and strips control s
 	for (const width of [1, 2, 8, 40])
 		expect(transcript.render(width).every((row) => visibleWidth(row) <= width)).toBe(true);
 	transcript.dispose();
+});
+
+test("muted, underlined rows retain saved wall time across parallel tools and reloads", () => {
+	// Chalk disables attributes without a TTY; exercise the terminal theme contract.
+	const styledTheme = getThemeByName("dark")!;
+	spyOn(styledTheme, "underline").mockImplementation((text) => `\x1b[4m${text}\x1b[24m`);
+	spyOn(styledTheme, "italic").mockImplementation((text) => `\x1b[3m${text}\x1b[23m`);
+	const source = {
+		...message([
+			{ type: "thinking", thinking: "**Checking index baseline**" },
+			{ type: "toolCall", id: "one", name: "read", arguments: {} },
+			{ type: "toolCall", id: "two", name: "read", arguments: {} },
+		]),
+		timestamp: 1_000,
+	};
+	const branch: SessionEntry[] = [
+		{
+			type: "message",
+			id: "assistant",
+			parentId: null,
+			timestamp: new Date(3_000).toISOString(),
+			message: source,
+		},
+	];
+	const result = (id: string, timestamp: number): SessionEntry => ({
+		type: "message",
+		id,
+		parentId: "assistant",
+		timestamp: new Date(timestamp).toISOString(),
+		message: { role: "toolResult", toolCallId: id, toolName: "read", content: [], isError: false, timestamp },
+	});
+	const timings = new ActivityTimings();
+	timings.load(branch);
+	let now = 11_000;
+	const f = fixture(timings, () => now, styledTheme);
+	f.chat.addChild(new AssistantMessageComponent(source));
+	for (const id of ["one", "two"]) {
+		const tool = new ToolExecutionComponent("read", id, {}, undefined, undefined, f.tui, "/tmp");
+		tool.markExecutionStarted();
+		f.chat.addChild(tool);
+	}
+	expect(lines(f.document).join("\n")).toContain("Working for 10s · Checking index baseline · 3 steps");
+	now = 66_000;
+	expect(lines(f.document).join("\n")).toContain("Working for 1m 5s · Checking index baseline · 3 steps");
+	f.unmount();
+	branch.push(result("one", 101_000), result("two", 417_000));
+	// Rebuilding native components must use saved timestamps, not their mount time.
+	timings.load(branch);
+	const reloaded = fixture(timings, () => 999_000, styledTheme);
+	reloaded.chat.addChild(new AssistantMessageComponent(source));
+	for (const id of ["one", "two"]) {
+		const tool = new ToolExecutionComponent("read", id, {}, undefined, undefined, reloaded.tui, "/tmp");
+		tool.updateResult({ content: [], isError: false });
+		reloaded.chat.addChild(tool);
+	}
+	const rows = reloaded.document.render(100);
+	const row = rows.find((line) => Bun.stripANSI(line).includes("Worked for"))!;
+	expect(Bun.stripANSI(row)).toStartWith("  Worked for 6m 56s · Checking index baseline · 3 steps");
+	expect(row).toStartWith(tuiTheme(styledTheme).fgAnsi("text.muted"));
+	expect(row).toContain(styledTheme.italic("Checking index baseline"));
+	expect(row).toContain("\x1b[4:4m");
+	expect(visibleWidth(row)).toBe(100);
+	const padding = " ".repeat(100 - visibleWidth(Bun.stripANSI(row).trimEnd()));
+	expect(padding.length).toBeGreaterThan(20);
+	expect(row).toContain(tuiTheme(styledTheme).fg("text.muted", padding));
+	expect(row).toContain(`${padding}\x1b[39m\x1b[24m`);
+	expect(row).not.toContain("\x1b[1m");
+	expect(Bun.stripANSI(row)).not.toMatch(/[•●]/u);
+	for (const width of [1, 2, 8, 40])
+		expect(reloaded.document.render(width).every((line) => visibleWidth(line) <= width)).toBe(true);
+	reloaded.unmount();
+	timings.load([]);
+	expect(
+		timings.elapsed(
+			[
+				{
+					kind: "thinking",
+					key: {},
+					component: new Container(),
+					summary: "Old",
+					timestamp: 1_000,
+					running: false,
+					failed: false,
+				},
+			],
+			999_000,
+		),
+	).toBeUndefined();
 });

@@ -1,9 +1,14 @@
 # @luan.sh/pi-collapse-transcript&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-collapse-transcript)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-collapse-transcript)
 
 `@luan.sh/pi-collapse-transcript` folds runs of tool calls and thinking blocks in Pi's fullscreen
-transcript into one collapsed activity row. The row shows the latest tool action
-or the latest provider-supplied thinking heading, a step count, and a failure
-count. Click it to expand the run back into the original tool renderers and
+transcript into collapsed activity rows after the agent finishes the turn.
+During the turn, thinking and tools stay visible in their original renderers, including
+completed steps and intermediate prose. Previous turns keep their fold state. The row shows the latest
+provider-supplied thinking summary (or tool action when no thinking is available), elapsed time,
+a step count, and a failure count. The entire row is muted with a dotted underline
+that spans the terminal width, including the empty space after the chevron,
+with the summary italicized: `  Worked for 6m 56s · Checking index baseline · 12 steps`.
+Click it to expand the run back into the original tool renderers and
 thinking Markdown. User messages, assistant prose, errors, and other entries stay
 visible and separate one run from the next.
 
@@ -26,12 +31,7 @@ pi install npm:@luan.sh/pi-collapse-transcript
 That is the only step. The package ships its rendering library and mouse host
 with it and registers both through `package.json`; nothing else needs to be
 installed. It runs inside Pi (`@earendil-works/pi-coding-agent` with
-`@earendil-works/pi-tui`); 0.84.2 is the tested version.
-
-Optional companion: `pi install npm:@luan.sh/pi-xsettings` adds the
-`/xsettings` UI for the shared appearance settings (activity indicator, text
-effects, animation speed) that the collapsed row uses; without it the compiled
-defaults apply.
+`@earendil-works/pi-tui`); 0.87.1 is the tested version.
 
 ## Use it
 
@@ -40,10 +40,11 @@ its work on `session_start`:
 
 - In interactive TUI mode it installs a hidden widget (`pi-collapse-transcript.host`)
   that mounts a transcript projection over Pi's chat container.
-- In fullscreen mode, consecutive `thinking` and tool entries become one
-  `ActivitySection`. Its header row shows the summary, a `N steps` count, and
-  `M failed` when any tool in the run failed. The row animates while any
-  entry is still running.
+- `agent_start` keeps new entries visible until `agent_settled`, including retries
+  and automatic continuations. Finishing an individual tool or model request does not fold anything.
+- In fullscreen mode, completed consecutive `thinking` and tool entries become one
+  `ActivitySection`. Its header shows `Worked for <duration> · summary`, a `N steps` count, and
+  `M failed` when any tool in the run failed. It has no status dot or spinner.
 - Clicking the row toggles between collapsed and expanded. Expanded content is
   the original components, so tool renderers, thinking Markdown, and libtui's
   scrolling and fold controls behave as they do natively.
@@ -60,9 +61,17 @@ transcript controls need the fullscreen surface.
 
 ### Header summary
 
+The group keeps its latest nonempty thinking summary while tools run and after
+they finish. Groups without thinking use the latest tool action.
+Elapsed time spans the group's earliest start to its latest completion, so
+parallel tools are not added together. Saved message timestamps preserve it
+across reloads and session resumes; active groups refresh once per second.
+When timing is unavailable, the row omits the duration and the word `for`.
 `activitySummary` picks the header text:
 
-- Tool entries use the tool's own summary with leading punctuation stripped.
+- Tool entries use structured action text with leading punctuation stripped.
+  Reading a summary never renders the tool header or copies its animation,
+  tree branches, or width-dependent truncation into the collapsed row.
 - Thinking entries use the last `**bold**` or `#` heading in the final 8,000
   characters of the thought; without a heading they use the first line of the
   last paragraph, and finally the literal `Thinking`. No summary is invented.
@@ -74,12 +83,8 @@ transcript controls need the fullscreen surface.
 The package registers no settings, no actions, and no keybindings. The only
 input it handles is a mouse press on the activity row, provided by
 the bundled `@luan.sh/pi-libtui` mouse host. There is nothing to add to
-`~/.pi/agent/keybindings.json` for this package. The running indicator and
-text effects follow `@luan.sh/pi-libtui`'s shared appearance settings (`activityIndicator`,
-default `spinner`; `textEffect`, default `off`; `animationSpeed`, default
-`normal`; and the other keys documented in the `@luan.sh/pi-libtui` README).
-These are edited via `/xsettings` when `@luan.sh/pi-xsettings` is installed;
-otherwise the defaults apply.
+`~/.pi/agent/keybindings.json` for this package. Expanded tools keep their
+own appearance settings.
 
 ## Library API
 
@@ -87,8 +92,9 @@ otherwise the defaults apply.
 `ComponentStack` that takes an entry reader, a Pi `Theme`, and a
 `requestRender` callback. It groups `TranscriptEntry` values from
 `@luan.sh/pi-libtui/tool` and owns the fold state of each section. Pass it to
-`mountTranscriptProjection` to use it outside this extension, or render it
-directly in tests. It has no native binary.
+`mountTranscriptProjection` to use it outside this extension. Call `beginTurn()`
+when the agent starts and `finishTurn()` only once the run settles; repeated
+`beginTurn()` calls preserve the boundary during automatic continuations. It has no native binary.
 
 ## Native boundary
 
@@ -105,6 +111,7 @@ left untouched. Unknown nodes and native error notices render as they are.
 | Pi registration, widget lifecycle, session hooks | `src/extension.ts` |
 | Grouping entries into sections and fold state | `src/activity-transcript.ts` (`ActivityTranscript`, `ActivitySection`) |
 | Header text for a run | `activitySummary` in `src/activity-transcript.ts` |
+| Elapsed time from session history | `src/activity-timing.ts` |
 | Public exports | `src/index.ts` |
 | Native transcript bridge | `mountTranscriptProjection` in `@luan.sh/pi-libtui/tool` |
 | Row rendering, motion, folding, mouse | `ToolActivity`, `ComponentStack`, and the mouse host in `@luan.sh/pi-libtui` |

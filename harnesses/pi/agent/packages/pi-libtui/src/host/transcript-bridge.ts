@@ -4,8 +4,24 @@ import { sanitizeTuiFieldPreview } from "../content/terminal-text.ts";
 
 export type TranscriptEntry =
 	| { kind: "content"; key: object; component: Component }
-	| { kind: "thinking"; key: object; component: Component; summary: string; running: boolean; failed: boolean }
-	| { kind: "tool"; key: object; component: Component; summary: string; running: boolean; failed: boolean };
+	| {
+			kind: "thinking";
+			key: object;
+			component: Component;
+			summary: string;
+			running: boolean;
+			failed: boolean;
+			timestamp?: number;
+	  }
+	| {
+			kind: "tool";
+			key: object;
+			component: Component;
+			summary: string;
+			running: boolean;
+			failed: boolean;
+			toolCallId?: string;
+	  };
 
 export interface TranscriptProjection extends Component {
 	dispose(): void;
@@ -137,19 +153,23 @@ class NativeEntries {
 	read(node: Component): readonly TranscriptEntry[] {
 		if (assistant(node)) return this.readAssistant(node);
 		if (!tool(node)) return [{ kind: "content", key: node, component: node }];
+		const summary = toolLabel(node);
 		const previous = this.tools.get(node);
 		if (
 			previous &&
 			previous.result === node.result &&
 			previous.args === node.args &&
-			previous.partial === node.isPartial
+			previous.partial === node.isPartial &&
+			previous.entry.kind === "tool" &&
+			previous.entry.summary === summary
 		)
 			return [previous.entry];
 		const entry: TranscriptEntry = {
 			kind: "tool",
+			toolCallId: node.toolCallId,
 			key: node,
 			component: node,
-			summary: toolLabel(node),
+			summary,
 			running: !node.result || node.isPartial,
 			failed: node.result?.isError ?? false,
 		};
@@ -187,6 +207,7 @@ class NativeEntries {
 				part.type === "thinking"
 					? {
 							kind: "thinking",
+							timestamp: Number.isFinite(message.timestamp) ? message.timestamp : undefined,
 							key: view,
 							component: view,
 							summary: text,

@@ -1,7 +1,14 @@
 import type { Theme } from "@earendil-works/pi-coding-agent";
-import { type Component, Spacer } from "@earendil-works/pi-tui";
-import { ComponentStack, sanitizeTuiFieldPreview } from "@luan.sh/pi-libtui";
+import { type Component, Spacer, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
+import {
+	ComponentStack,
+	type MotionMount,
+	sanitizeTuiFieldPreview,
+	sharedMotionScheduler,
+	tuiTheme,
+} from "@luan.sh/pi-libtui";
 import { ToolActivity, type TranscriptEntry } from "@luan.sh/pi-libtui/tool";
+import { ActivityTimings, formatActivityDuration } from "./activity-timing.ts";
 
 type ActivityEntry = Exclude<TranscriptEntry, { kind: "content" }>;
 
@@ -23,12 +30,22 @@ class ActivitySection extends ComponentStack {
 	private readonly body = new ComponentStack();
 	private readonly activity: ToolActivity;
 	private entries: readonly ActivityEntry[] = [];
+	private clock: MotionMount | undefined;
+	private summary = "";
+	private running = false;
+	private failures = 0;
 
-	constructor(theme: Theme, requestRender: () => void) {
+	constructor(
+		private readonly theme: Theme,
+		private readonly requestRender: () => void,
+		private readonly timings: ActivityTimings,
+		private readonly now: () => number,
+	) {
 		super();
 		this.activity = new ToolActivity({
 			theme,
 			requestRender,
+			action: { render: (width) => this.renderHeader(width), invalidate() {} },
 			view: { action: { verb: "Working", status: "running" } },
 		});
 		this.setChildren([new Spacer(1), this.activity]);
@@ -39,25 +56,58 @@ class ActivitySection extends ComponentStack {
 			return;
 		this.entries = entries;
 		this.body.setChildren(entries.map((entry) => entry.component));
-		const latest = entries.at(-1)!;
+		// Keep the model's intent visible while tools run and after they finish.
+		const latest =
+			entries.filter((entry) => entry.kind === "thinking" && entry.summary.trim()).at(-1) ?? entries.at(-1)!;
 		const running = entries.some((entry) => entry.running);
 		const failures = entries.filter((entry) => entry.failed).length;
+		this.summary = activitySummary(latest);
+		this.running = running;
+		this.failures = failures;
+		if (running && !this.clock)
+			this.clock = sharedMotionScheduler.mount({ requestRender: this.requestRender }, { cadenceMs: 1_000 });
+		else if (!running) {
+			this.clock?.dispose();
+			this.clock = undefined;
+		}
 		this.activity.update({
 			action: {
-				verb: activitySummary(latest),
+				verb: this.summary,
 				status: failures ? "failed" : running ? "running" : "succeeded",
-				marker: running ? false : undefined,
-				meta: [
-					`${entries.length} ${entries.length === 1 ? "step" : "steps"}`,
-					...(failures ? [`${failures} failed`] : []),
-				],
+				marker: false,
 			},
 			running,
 			payload: { kind: "component", preview: EMPTY, full: this.body },
 		});
 	}
 
+	render(width: number): string[] {
+		const rows = super.render(width);
+		// Extend the underline through the empty columns, not just the disclosure text.
+		if (rows[1]) {
+			const colors = tuiTheme(this.theme);
+			const padding = " ".repeat(Math.max(0, Math.floor(width) - visibleWidth(rows[1])));
+			// The chevron closes its foreground; paint the remaining columns explicitly.
+			const row = rows[1] + colors.fg("text.muted", padding);
+			// Pi exposes only solid underlines; select dotted SGR styling at this terminal boundary.
+			const underlined = this.theme.underline(row).replaceAll("\x1b[4m", "\x1b[4:4m");
+			rows[1] = colors.fg("text.muted", underlined);
+		}
+		return rows;
+	}
+
+	private renderHeader(width: number): string[] {
+		if (width <= 0) return [];
+		const elapsed = this.timings.elapsed(this.entries, this.now());
+		const duration = elapsed === undefined ? "" : ` for ${formatActivityDuration(elapsed)}`;
+		const label = `  ${this.running ? "Working" : "Worked"}${duration} · ${this.theme.italic(this.summary)}`;
+		const steps = `${this.entries.length} ${this.entries.length === 1 ? "step" : "steps"}`;
+		const failed = this.failures ? ` · ${this.failures} failed` : "";
+		return [truncateToWidth(`${label} · ${steps}${failed}`, width, "…")];
+	}
+
 	dispose(): void {
+		this.clock?.dispose();
 		this.activity.dispose();
 	}
 }
@@ -67,13 +117,27 @@ const EMPTY: Component = { render: () => [], invalidate() {} };
 /** Fold consecutive tools/thinking, leaving assistant text and every other message in place. */
 export class ActivityTranscript extends ComponentStack {
 	private readonly sections = new Map<object, ActivitySection>();
+	private completedBeforeTurn: Set<object> | undefined;
 
 	constructor(
 		private readonly entries: () => readonly TranscriptEntry[],
 		private readonly theme: Theme,
 		private readonly requestRender: () => void,
+		private readonly timings = new ActivityTimings(),
+		private readonly now: () => number = Date.now,
 	) {
 		super();
+	}
+
+	beginTurn(): void {
+		// Retries and automatic continuations belong to the same visible run.
+		this.completedBeforeTurn ??= new Set(this.entries().map((entry) => entry.key));
+		this.requestRender();
+	}
+
+	finishTurn(): void {
+		this.completedBeforeTurn = undefined;
+		this.requestRender();
 	}
 
 	render(width: number): string[] {
@@ -85,7 +149,7 @@ export class ActivityTranscript extends ComponentStack {
 			const key = pending[0]!.key;
 			let section = this.sections.get(key);
 			if (!section) {
-				section = new ActivitySection(this.theme, this.requestRender);
+				section = new ActivitySection(this.theme, this.requestRender, this.timings, this.now);
 				this.sections.set(key, section);
 			}
 			section.update(pending);
@@ -94,7 +158,8 @@ export class ActivityTranscript extends ComponentStack {
 			pending = [];
 		};
 		for (const entry of this.entries()) {
-			if (entry.kind !== "content") pending.push(entry);
+			if (entry.kind !== "content" && (!this.completedBeforeTurn || this.completedBeforeTurn.has(entry.key)))
+				pending.push(entry);
 			else {
 				flush();
 				children.push(entry.component);

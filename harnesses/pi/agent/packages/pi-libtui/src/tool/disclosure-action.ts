@@ -16,6 +16,7 @@ export class ToolDisclosureAction implements Component, TextInteractionTarget {
 		private action: Component,
 		private region: ToolViewRegion,
 		private readonly requestRender: () => void,
+		private readonly activityLabel?: () => string,
 	) {}
 
 	setAction(action: Component): void {
@@ -26,11 +27,8 @@ export class ToolDisclosureAction implements Component, TextInteractionTarget {
 	}
 
 	/** Semantic header only, for enclosing activity sections; never renders the payload. */
-	getActivityLabel(): string {
-		return this.action
-			.render(100)
-			.map((line) => stripTerminalSequences(line).trim())
-			.join(" ");
+	getActivityLabel(): string | undefined {
+		return this.activityLabel?.();
 	}
 
 	setRegion(region: ToolViewRegion): void {
