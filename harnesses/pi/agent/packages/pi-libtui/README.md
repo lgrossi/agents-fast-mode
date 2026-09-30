@@ -149,6 +149,10 @@ payload), `ToolActivity` (streaming, diff, terminal, and viewport state for a
 live surface), and `ToolOutput` for text streams. `mountTranscriptProjection`
 exposes native transcript entries to a feature-owned component through a
 guarded Pi 0.84–0.85 adapter; unsupported hosts keep their native transcript.
+Expanded output supports Page Up/Down after opening its header, mouse-wheel
+scrolling, and scrollbar dragging. Nested viewports reserve separate scrollbar
+columns and expose their clipped child geometry to the mouse host, preserving
+native text selection outside scrollbar gestures.
 
 ## Native binaries
 

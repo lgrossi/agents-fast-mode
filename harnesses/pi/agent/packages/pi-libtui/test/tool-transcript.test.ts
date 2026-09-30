@@ -858,6 +858,23 @@ describe("tool transcript grammar", () => {
 		activity.dispose();
 	});
 
+	test("honors initial expansion when text wraps past the preview", () => {
+		const activity = new ToolActivity({
+			theme,
+			previewRows: 2,
+			requestRender() {},
+			view: {
+				action: { verb: "Read", status: "succeeded", marker: false },
+				mode: "full",
+				payload: { kind: "text", text: "a very long line that wraps", revision: 1 },
+			},
+		});
+		const rendered = stripTerminalSequences(activity.render(8).join("\n"));
+		expect(rendered.replace(/\s/gu, "")).toContain("averylonglinethatwraps");
+		expect(rendered).not.toContain("rows omitted");
+		activity.dispose();
+	});
+
 	test("resets the region after payload removal before its first render", () => {
 		const action = { verb: "Working", status: "succeeded" as const, marker: false as const };
 		const activity = new ToolActivity({
