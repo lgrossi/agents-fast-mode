@@ -37,7 +37,10 @@ export class XSettingsEditorSession {
 			(value): value is SettingRegistration => value !== undefined,
 		);
 		const registrationValues = new Map(
-			registrations.map((registration) => [registration.namespace, resolveRegistrationValues(registration, document)]),
+			registrations.map((registration) => [
+				registration.namespace,
+				resolveRegistrationValues(registration, document, true),
+			]),
 		);
 		const fields = [
 			...piDefinitions.map((definition) => toUiField(document, undefined, definition)),
@@ -143,6 +146,12 @@ export class XSettingsEditorSession {
 		const namespace = definition.storagePath[1];
 		const registration = namespace ? this.registry.registrations[namespace] : undefined;
 		if (!registration) return;
+		if (
+			registration.definitions.some(
+				(item) => item.scope === "session" && item.key === definition.storagePath.slice(2).join("."),
+			)
+		)
+			return;
 		const previewDocument = structuredClone(this.document);
 		setPath(previewDocument, definition.storagePath, storedValue);
 		void this.registry.publish(namespace, resolveRegistrationValues(registration, previewDocument));
