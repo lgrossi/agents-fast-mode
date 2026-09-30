@@ -2,6 +2,9 @@
   "files": [],
   "references": [
     {
+      "path": "harnesses/pi/agent/packages/pi-imagegen"
+    },
+    {
       "path": "harnesses/pi/agent/packages/pi-context-windows"
     },
     {

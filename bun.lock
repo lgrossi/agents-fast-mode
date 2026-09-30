@@ -198,6 +198,27 @@
         "@earendil-works/pi-coding-agent": ">=0.99.1",
       },
     },
+    "harnesses/pi/agent/packages/pi-imagegen": {
+      "name": "@luan.sh/pi-imagegen",
+      "version": "0.1.0",
+      "dependencies": {
+        "@howaboua/pi-codex-imagegen": "0.0.4",
+        "@luan.sh/pi-libtui": "workspace:*",
+      },
+      "devDependencies": {
+        "@earendil-works/pi-ai": "0.99.1",
+        "@earendil-works/pi-coding-agent": "0.99.1",
+        "@earendil-works/pi-tui": "0.99.1",
+        "@types/bun": "^1.3.0",
+        "typescript": "^6.0.3",
+      },
+      "peerDependencies": {
+        "@earendil-works/pi-ai": ">=0.87.1",
+        "@earendil-works/pi-coding-agent": ">=0.99.1",
+        "@earendil-works/pi-tui": ">=0.87.1",
+        "typebox": "*",
+      },
+    },
     "harnesses/pi/agent/packages/pi-libactions": {
       "name": "@luan.sh/pi-libactions",
       "version": "0.3.3",
@@ -568,6 +589,8 @@
 
     "@google/genai": ["@google/genai@2.21.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "p-retry": "^4.6.2", "protobufjs": "^7.5.4", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.25.2" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-+PDtco2/Z0ONdzCGekCoCT+O1VJS9xJQNN4XzQpXG/t3El/SWWMkCWlFRO1KmivOHPa4Q0VjUYu1HBKCZ/v33Q=="],
 
+    "@howaboua/pi-codex-imagegen": ["@howaboua/pi-codex-imagegen@0.0.4", "", { "dependencies": { "proxy-from-env": "2.1.0", "undici": "8.10.0" }, "peerDependencies": { "@earendil-works/pi-coding-agent": ">=0.84.4", "@earendil-works/pi-tui": ">=0.84.4", "typebox": "*" } }, "sha512-LGJv8DAfWLZKgttOZSPYJjN5mYCUeP/aGtC4odZ3CLS31ADqnyaCj+hn/Q2TuesHMdHsWeALrx2A6oRipNHDYg=="],
+
     "@luan.sh/pi-codex-native": ["@luan.sh/pi-codex-native@workspace:harnesses/pi/agent/packages/pi-codex-native"],
 
     "@luan.sh/pi-collapse-transcript": ["@luan.sh/pi-collapse-transcript@workspace:harnesses/pi/agent/packages/pi-collapse-transcript"],
@@ -585,6 +608,8 @@
     "@luan.sh/pi-exec-command": ["@luan.sh/pi-exec-command@workspace:harnesses/pi/agent/packages/pi-exec-command"],
 
     "@luan.sh/pi-fileops": ["@luan.sh/pi-fileops@workspace:harnesses/pi/agent/packages/pi-fileops"],
+
+    "@luan.sh/pi-imagegen": ["@luan.sh/pi-imagegen@workspace:harnesses/pi/agent/packages/pi-imagegen"],
 
     "@luan.sh/pi-libactions": ["@luan.sh/pi-libactions@workspace:harnesses/pi/agent/packages/pi-libactions"],
 
@@ -955,6 +980,8 @@
     "@aws-sdk/nested-clients/@smithy/fetch-http-handler": ["@smithy/fetch-http-handler@5.8.0", "", { "dependencies": { "@smithy/core": "^3.33.3", "@smithy/types": "^4.18.0", "tslib": "^2.6.2" } }, "sha512-ycSJu3tFAQ4v04CBB0agqFMVsSQ1iG3yw+SpgxRqKfaURpQD4CZ8Wn0zPMmSnOuTpTh65Vz+EA0rMrw089wvkA=="],
 
     "@earendil-works/pi-ai/https-proxy-agent": ["https-proxy-agent@9.1.0", "", { "dependencies": { "agent-base": "9.0.0", "debug": "^4.3.4", "proxy-agent-negotiate": "1.1.0" } }, "sha512-ag87y7cJJ9/3+GxFr8Oy4O5faDsGRGnBGsJj/YjOSsSx/5eadKLYTMPlzuR6obgoCDDm0abAAZitXXQkMOPSpA=="],
+
+    "@howaboua/pi-codex-imagegen/undici": ["undici@8.10.0", "", {}, "sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ=="],
 
     "@luan.sh/pi-context-windows/typebox": ["typebox@1.3.15", "", {}, "sha512-gOKAjLqUr+bFGbO5vxCEO5+nHh2wO+swzSIkiJJC0kJ4oLN6f65SrZn6tJYhsYO+qdnpf2NmlQwgsayYoi1NkQ=="],
 

@@ -17,6 +17,7 @@
     "packages/pi-developer-messages",
     "packages/pi-conversation",
     "packages/pi-context-windows",
+    "packages/pi-imagegen",
     "packages/pi-codex-native",
     "packages/pi-skills",
     "packages/pi-exec-command",
@@ -51,6 +52,7 @@
     "mermaid": "streaming"
   },
   "defaultTools": [
+    "image_gen__imagegen",
     "new_context",
     "get_context_remaining",
     "history__list_windows",
