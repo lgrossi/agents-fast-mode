@@ -5,6 +5,10 @@ concurrent, nested agents. Each agent runs in its own Pi session and can
 receive follow-up work, direct messages, or an interrupt without blocking
 unrelated agents in the tree.
 
+Requires Pi 0.99.1 or later. SDK sessions load Pi's built-in codemode, Tool
+Search, and MCP extensions and respect their disable settings. Collaboration
+tools stay direct; scripts cannot spawn or control agents.
+
 The extension registers six collaboration tools for the model:
 
 - `spawn_agent` starts one bounded task under the caller.
@@ -88,7 +92,7 @@ agent does not delete its transcript.
 
 Child sessions rediscover installed extensions, tools, and skills from the same
 working directory and Pi agent directory, then keep only tool names active in
-the parent (plus any tools lifted into a Code Mode `exec` cell). Session-only
+the parent. Built-in codemode calls the child's registered tools. Session-only
 inline tools or resource paths that were never installed are omitted. The
 collaboration tools themselves stay direct Pi tools and are not lifted into
 Code Mode.
@@ -152,7 +156,7 @@ extensions after editing. `/subagents` always works without a binding.
 | Tree state, mailbox, checkpoints | `src/runtime/coordinator.ts` |
 | Child session execution and prompt assembly | `src/runtime/agent-runner.ts`, `src/core/prompts.ts`, `src/core/types.ts` |
 | Delegation instructions | `src/core/instructions.ts`, `src/contributions/developer-prompt.ts` |
-| History forking and nested activity | `src/core/fork-history.ts`, `src/runtime/nested-tool-activity.ts` |
+| History forking | `src/core/fork-history.ts` |
 | Transcript location | `src/runtime/session-root.ts` |
 | Typed settings | `src/config/settings.ts` |
 | Keyboard action | `src/contributions/actions.ts` |
@@ -169,7 +173,7 @@ extensions after editing. `/subagents` always works without a binding.
   `keybindings.json`, confirm `@luan.sh/pi-xsettings` is installed, and reload.
 - **A requested model is unavailable:** use a unique model id or alias, or the
   exact `provider/model-id`, and confirm the provider is configured in Pi.
-- **A collaboration tool is missing inside `exec`:** call it directly; the
+- **A collaboration tool is missing inside `codemode`:** call it directly; the
   package does not lift session-tree coordination into Code Mode.
 
 ## Develop
@@ -177,3 +181,13 @@ extensions after editing. `/subagents` always works without a binding.
 Source: https://github.com/luan/agents, directory
 harnesses/pi/agent/packages/pi-subagents. Run `bun run typecheck` and
 `bun test test` in that directory.
+
+## Conversation and context integration
+
+Child sessions persist a provider-independent `session.identity/v1` record with
+the root session ID, root transcript path, canonical agent name, and interactive
+status. Optional `pi-context-windows` uses it with recorded child transcript paths for
+same-tree history and working notes, including resumed children in other working
+directories. Optional `pi-conversation` uses it to keep child clarification and updates
+in the parent mailbox, including interactive side sessions.
+Neither integration adds a runtime dependency on the feature package.

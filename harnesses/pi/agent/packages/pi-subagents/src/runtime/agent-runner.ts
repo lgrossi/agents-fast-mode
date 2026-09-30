@@ -21,6 +21,7 @@ import {
 	type SessionStartEvent,
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
+import { appendAgentIdentity } from "../contributions/session-identity.ts";
 import { SUBAGENT_TASK_MESSAGE_TYPE } from "../core/fork-history.ts";
 import { buildAgentPrompt } from "../core/prompts.ts";
 import type { AgentConfig, AgentModelReference } from "../core/types.ts";
@@ -306,6 +307,13 @@ export async function runAgent(ctx: ExtensionContext, prompt: string, options: R
 	};
 
 	const sessionManager = SessionManager.create(effectiveCwd, options.sessionDir);
+	if (options.collaboration)
+		appendAgentIdentity(
+			sessionManager,
+			ctx,
+			options.collaboration.agentPath,
+			options.collaboration.completionDelivery === "none",
+		);
 	for (const message of options.forkedHistory ?? []) {
 		// type-boundary: Pi's AgentMessage union includes summary variants accepted by the runtime but omitted from appendMessage's public parameter.
 		sessionManager.appendMessage(message as object as Parameters<SessionManager["appendMessage"]>[0]);

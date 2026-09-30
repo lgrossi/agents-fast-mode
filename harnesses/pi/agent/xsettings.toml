@@ -60,5 +60,5 @@ pi-voice.v3Voice = "sol"
 pi.steeringMode = "one-at-a-time"
 
 [tools]
-pi.defaultTools = ["request_user_input_async", "send_message_to_user_async", "clock__sleep", "clock__curr_time", "codemode", "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image"]
+pi.defaultTools = ["new_context", "get_context_remaining", "history__list_windows", "history__list_items", "history__read_item", "history__search_contents", "notes__list_files_by_prefix", "notes__read_file", "notes__search_contents", "notes__append_to_file", "notes__write_file", "request_user_input_async", "send_message_to_user_async", "clock__sleep", "clock__curr_time", "codemode", "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image"]
 pi-skills.catalogVisibility = "when-active"
