@@ -24,10 +24,8 @@ itself on first use under Pi's agent directory (`native/view-image/<version>/`).
 Set `PI_VIEW_IMAGE_BIN` to use a prebuilt binary; it must point to an
 executable file. Pi shows an info notification while the first build runs.
 
-Code Mode support is bundled. If `@luan.sh/pi-code-mode` is also installed
-(`pi install npm:@luan.sh/pi-code-mode`), `view_image` is callable from inside
-Code Mode scripts as described below; without it the tool is still available as
-a normal Pi tool.
+`view_image` uses Pi's `model-only` exposure so image content reaches the model
+and transcript directly.
 
 ## The `view_image` tool
 
@@ -55,26 +53,15 @@ Behaviour:
   `openai-codex` provider it requires the model's `compat.supportsImageDetailOriginal`
   flag; every other provider with image input gets it. When a model does not
   support it, a requested `original` silently falls back to `high`.
-- Any Pi model that declares `image` in its `input` capabilities can use the
-  tool. Other models get the error
-  `view_image is not allowed because the current model does not support image inputs`
-  before the file is read.
+- Models with image input receive the image. Text-only models receive a
+  description from the configured vision model, using a separate request with
+  the image and no main-session transport continuation. Disable Description
+  fallback to reject text-only callers instead.
 - The tool result contains one image content block. Its `details` record the
   input, the resolved path, MIME type, width, height, byte size, and duration in
   milliseconds.
 - Errors from the binary (missing file, unsupported format, decode failure) are
   surfaced as the tool error message, truncated to 8192 characters.
-
-### Inside Code Mode
-
-The tool is also registered through `@luan.sh/pi-code-mode/sdk`. In a Code Mode
-script, `view_image` returns `{ image_url, detail }`, where `image_url` is a
-base64 `data:` URL. Forward it with `image(result)` so the model sees the image:
-
-```js
-const result = await tools.view_image({ path: "screenshots/current.png" });
-image(result);
-```
 
 ## Pasting image paths into the editor
 
@@ -127,20 +114,29 @@ of image tags equals the count of image blocks; otherwise the message is left
 unchanged. This applies to Pi's own `@image` attachments and to pastes handled
 by this package, and is provider-neutral.
 
-The same hook then clamps every image block in the outgoing context, in user
-and tool-result messages alike, to 2000 pixels on either axis using Pi's
-`resizeImage`. Anthropic rejects larger images once a request carries more
-than 20 of them, and attach-time resizing cannot fix images already in the
-session history. Each distinct image is decoded once per session.
-Shrinking an image that Anthropic has already seen changes the request prefix,
-so the next response reports dropped thinking blocks once; pi-thinking-binding
-then strips those blocks for the rest of the session.
+Pi 0.87.1 or later owns model-specific image resizing at ingestion through
+`inputLimits.images.resize`. Switching models does not re-encode images
+already in the transcript. The native `view_image` tool keeps its `high` and
+`original` preprocessing described above.
+
+For older sessions, this extension repairs existing image blocks with the
+stable 2000-pixel fallback. Each distinct legacy image is decoded once per
+session. Repairs are saved as append-only context edits at the next turn
+boundary, so resume uses the repaired bytes while raw history remains intact.
+Newly ingested images are left to Pi's model profile. Repairing a legacy image
+can invalidate the old prompt prefix once; it is not repeated on every request.
 
 ## Configuration
 
-The package has no settings. The only configuration is the
-`PI_VIEW_IMAGE_BIN` environment variable described under Install. It
-registers no keybindings; pasting uses the editor's normal paste path.
+Settings use namespace `pi-view-image` in xsettings: **Describe images for text-only models**
+(`descriptionFallback`) defaults to true; **Image description model**
+(`descriptionModel`) defaults to `openai-codex/gpt-5.6-luna`. The selected model
+must support image input and be authenticated in Pi. Descriptions are bounded
+to 32,000 characters. The fallback applies to `view_image` calls; it does not
+convert every image pasted into a text-only conversation.
+
+`PI_VIEW_IMAGE_BIN` selects the native executable. The extension registers no
+keybindings; pasting uses the editor's normal paste path.
 
 ## Layout
 
@@ -150,13 +146,13 @@ registers no keybindings; pasting uses the editor's normal paste path.
 | Tool schema, aliases, model capability checks | `src/tools/view-image/definition.ts` |
 | Tool result and details shape | `src/tools/view-image/result.ts` |
 | Tool call and result rendering | `src/tools/view-image/presentation.ts` |
+| Text-only description request | `src/runtime/describe-image.ts` |
 | Native binary discovery and build | `src/native/binary.ts` |
 | Running the binary and parsing its JSON | `src/native/view-image.ts` |
 | Codex-style `<image>` labeling in the context hook | `src/native-attachments.ts` |
 | Pasted image path detection and pending attachment tokens | `src/core/attachments.ts` |
 | Turning pending tokens into attached images on submit | `src/runtime/attachments.ts` |
 | Editor paste handler and pill rendering | `src/runtime/editor-attachments.ts` |
-| Code Mode adapter | `src/code-mode-adapter.ts` |
 | Icon and pill appearance | `src/core/appearance.ts` |
 
 ## Develop

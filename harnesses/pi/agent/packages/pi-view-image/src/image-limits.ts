@@ -18,12 +18,13 @@ const isImageBlock = (block: unknown): block is ImageBlock =>
 	typeof Reflect.get(block, "mimeType") === "string";
 
 /**
- * Clamps every image block in the context before a request leaves. Attach-time resizing cannot fix
+ * Repairs legacy image blocks before a request leaves. Pi encodes newly ingested images. Attach-time resizing cannot fix
  * images already in history (pasted before the fix, produced by other extensions, or by Pi itself),
  * so this runs at the model boundary. Each distinct image is decoded once and memoized for the session.
  */
 export function createImageClamp(
 	resize: ResizeImage,
+	eligible?: ReadonlySet<string>,
 ): (messages: readonly AgentMessage[]) => Promise<AgentMessage[] | undefined> {
 	const cache = new Map<string, Promise<ImageBlock | null>>();
 	const clamp = (image: ImageBlock): Promise<ImageBlock | null> => {
@@ -42,7 +43,7 @@ export function createImageClamp(
 				if (!("content" in message) || !Array.isArray(message.content)) return message;
 				const content = await Promise.all(
 					message.content.map(async (block: unknown) => {
-						if (!isImageBlock(block)) return block;
+						if (!isImageBlock(block) || (eligible && !eligible.has(block.data))) return block;
 						const smaller = await clamp(block);
 						if (!smaller) return block;
 						changed = true;

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CustomEditor, type Theme, type KeybindingsManager } from "@earendil-works/pi-coding-agent";
 import { ProcessTerminal, TuiAltScreen } from "@earendil-works/pi-tui";
+import { ToolActivity } from "@luan.sh/pi-libtui/tool";
 import {
 	EDITOR_PROTOCOL,
 	type EditorFactory,
@@ -347,6 +348,52 @@ describe("view_image", () => {
 			{ executionStarted: false, state: {}, invalidate() {}, lastComponent: undefined, isError: false },
 		);
 		expect(component.render(80)[0]!.replace(/\x1b\[[0-9;]*m/g, "")).toContain("Viewed image · 7ms");
+	});
+
+	test("image descriptions expand through Pi's public renderer context", () => {
+		const result = createViewImageResult(
+			{ path: "image.png", detail: "high" },
+			{ path: "image.png", detail: "high", mimeType: "image/png", data: "AAAA", width: 1, height: 1, bytes: 3 },
+			1,
+		);
+		result.details!.description = {
+			model: "fixture/vision",
+			text: Array.from({ length: 30 }, (_, index) => `Description line ${index}`).join("\n"),
+		};
+		const render = (expanded: boolean) =>
+			createViewImageTool().renderResult!(result, { expanded, isPartial: false }, theme, {
+				args: { path: "image.png" },
+				toolCallId: "image",
+				cwd: "/tmp",
+				state: {},
+				invalidate() {},
+				lastComponent: undefined,
+				executionStarted: true,
+				argsComplete: true,
+				isPartial: false,
+				expanded,
+				showImages: false,
+				isError: false,
+			});
+		const expanded = render(true);
+		expect(expanded.render(100).length).toBeGreaterThan(render(false).render(100).length);
+		if (!(expanded instanceof ToolActivity)) throw new Error("Expected the shared tool presentation");
+		for (let index = 0; index < 30; index++) {
+			expanded.onMouse({
+				type: "wheel",
+				row: 3,
+				col: 4,
+				screenRow: 3,
+				screenCol: 4,
+				button: undefined,
+				wheel: 1,
+				shift: false,
+				alt: false,
+				ctrl: false,
+			});
+			expanded.render(100);
+		}
+		expect(expanded.render(100).join("\n")).toContain("Description line 29");
 	});
 
 	test("rejects malformed native output", () => {

@@ -48,3 +48,17 @@ describe("image clamp", () => {
 		expect(await clamp(messages)).toBeUndefined();
 	});
 });
+
+test("legacy repair leaves newly ingested images to Pi's model profile", async () => {
+	const resized: string[] = [];
+	const clamp = createImageClamp(
+		async (block) => {
+			resized.push(block.data);
+			return smaller(block);
+		},
+		new Set(["old"]),
+	);
+	const messages = [{ role: "user" as const, content: [image("old"), image("new")], timestamp: 1 }];
+	expect((await clamp(messages))?.[0]).toMatchObject({ content: [smaller(image("old")), image("new")] });
+	expect(resized).toEqual(["old"]);
+});
