@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { KeybindingsManager, Theme } from "@earendil-works/pi-coding-agent";
-import { stripTerminalSequences, visibleWidth } from "@earendil-works/pi-tui";
+import { Loader, stripTerminalSequences, truncateToWidth, visibleWidth } from "@earendil-works/pi-tui";
 import { tuiTheme } from "@luan.sh/pi-libtui";
 import { TuiState } from "../src/runtime/state.ts";
 import { PiCustomEditor } from "../src/ui/pi-custom-editor.ts";
@@ -22,6 +22,27 @@ type EditorHostBoundary = unknown;
 
 const tui = { terminal: { rows: 30, columns: 100 }, requestRender() {} } as EditorHostBoundary as never;
 const keybindings = { matches: () => false } as EditorHostBoundary as KeybindingsManager;
+
+class OperationIndicator extends Loader {
+	constructor(readonly kind: "working" | "compaction" | "retry" | "branchSummary") {
+		super(
+			tui,
+			(text) => text,
+			(text) => text,
+			kind,
+			{ frames: [] },
+		);
+	}
+	renderInBorder(width: number): string {
+		return truncateToWidth(this.kind, width);
+	}
+	renderSpinnerInBorder(): string {
+		return "";
+	}
+	dispose(): void {
+		this.stop();
+	}
+}
 
 const ctx = {
 	cwd: "/Users/luan/src/agents",
@@ -53,6 +74,22 @@ function editor(
 }
 
 describe("PiCustomEditor", () => {
+	test.each(["working", "compaction", "retry", "branchSummary"] as const)(
+		"embeds %s without losing the draft",
+		(kind) => {
+			const { instance, render } = editor(48);
+			const indicator = new OperationIndicator(kind);
+			instance.setText("keep this draft");
+			instance.setWorkingStatusIndicator(indicator);
+			const lines = render();
+			expect(lines.map(stripTerminalSequences).join("\n").split(kind)).toHaveLength(2);
+			expect(lines.every((line) => visibleWidth(line) <= 48)).toBe(true);
+			instance.setWorkingStatusIndicator(undefined);
+			expect(render().map(stripTerminalSequences).join("\n")).not.toContain(kind);
+			expect(instance.getText()).toBe("keep this draft");
+			indicator.dispose();
+		},
+	);
 	test("keeps typed text and cursor visible on the semantic editor surface", () => {
 		const { instance, render } = editor();
 		instance.setText("visible draft");

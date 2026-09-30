@@ -26,7 +26,7 @@ const workingPlacementOption = (value: (typeof WORKING_PLACEMENTS)[number]) => {
 		value,
 		label:
 			value === "transcript"
-				? "Transcript (Pi default)"
+				? "Pi default (editor header)"
 				: value === "hidden"
 					? "Hidden"
 					: value
@@ -35,7 +35,7 @@ const workingPlacementOption = (value: (typeof WORKING_PLACEMENTS)[number]) => {
 							.join(" "),
 		description:
 			value === "transcript"
-				? "Use Pi's native working row in the transcript."
+				? "Use Pi's native working indicator in the editor header."
 				: value === "hidden"
 					? "Hide the working animation."
 					: `Place the shared Working animation at ${value.replaceAll("-", " ")}.`,
@@ -258,7 +258,7 @@ const definitions = {
 		page: "editor",
 		section: "Status layout",
 		label: "Working placement",
-		description: "Place the existing Animations → Working presentation; Transcript uses Pi's default row.",
+		description: "Place the existing Animations → Working presentation; Pi default uses the editor header.",
 		type: "enum",
 		default: "transcript",
 		options: WORKING_PLACEMENTS.map(workingPlacementOption),

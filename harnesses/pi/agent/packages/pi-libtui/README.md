@@ -22,6 +22,10 @@ The native palette diagnostic and shared picker components in Xsettings.
 
 [Watch the demo](https://pi.luan.sh/media/previews/pi-libtui-e7ff85f140d3.mp4).
 
+`SemanticEditor` supports Pi 0.87.1's shared status-indicator contract.
+Composed editors can opt into embedding and call `renderOperationStatus(width)`
+to place working, compaction, retry, or branch-summary status with semantic colors.
+
 `installEditorMinimumRows` also accepts an optional live gap-visibility callback.
 Its Pi 0.87.1 layout adapter can hide the native above-editor spacer without
 trimming widget output; disposal restores the spacer and original allocation.
@@ -45,15 +49,15 @@ defaults apply.
 
 ## Themes
 
+Requires Pi 0.99.1 or later. Pi's public terminal-color query supplies default
+colors and the ANSI palette; libtui additionally measures the two indexed
+palette anchors used by `harmonious`.
+
 The manifest exposes `themes/harmonious.json`, which relies on the terminal's
 indexed palette. If `harmonious` is active and the measured terminal reports
 neither a generated 256-color palette nor an ANSI base-16 palette, the host
 switches to Pi's built-in theme for the detected light or dark scheme (dark if
 the measurement fails).
-
-Requires Pi 0.99.1 or later. Pi's public terminal-color query supplies default
-colors and the ANSI palette; libtui additionally measures the two indexed
-palette anchors used by `harmonious`.
 
 Painted surfaces set a contrasting default foreground as well as a background,
 including after child text resets its colors. Explicit text colors remain

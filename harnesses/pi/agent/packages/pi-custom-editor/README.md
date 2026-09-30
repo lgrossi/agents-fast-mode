@@ -35,13 +35,17 @@ without it the defaults apply and there is no in-app way to change them.
   extension already installed an editor factory, that editor is decorated
   (its render output is re-composed) rather than replaced.
 - Replaces the footer through Pi's `setFooter` with a status row driven by the
-  same composition settings.
+  same composition settings. The extension-status segment shows active statuses,
+  including voice recording and transcription, within the configured footer row.
 - Reads Pi's git branch, session name, model, provider, thinking level,
   context-window usage, per-session token/cost totals, and extension
   `setStatus` entries for status segments.
-- Hides Pi's native "working" transcript row only when `workingPlacement` is
+- Hides Pi's native working indicator only when `workingPlacement` is
   set to something other than `transcript`; the original visibility is restored
   on session shutdown.
+- Embeds Pi 0.87.1 working, compaction, retry, and branch-summary indicators in the
+  editor header. Operation status takes priority over ordinary header segments
+  while the operation runs, including at narrow widths; input stays intact.
 - Follows the shared appearance settings (animation speed, smoothness, reduced
   motion) provided by the bundled `@luan.sh/pi-libtui` runtime.
 
@@ -118,6 +122,9 @@ defaults below apply.
 The four segment lists are only used when `segmentSource` is `custom`. The
 working indicator's marker, message, and animation are owned by the shared
 Animations → Working settings; this package only decides where it is placed.
+The saved `transcript` value now selects **Pi default (editor header)**, matching
+Pi 0.87.1's native status placement. Explicit quadrant and hidden choices remain
+available.
 
 ## Keybindings
 

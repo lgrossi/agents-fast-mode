@@ -45,7 +45,7 @@ function splitNativeRender(rendered: readonly string[]): { editorLines: string[]
 class CompositionRenderer {
 	constructor(private readonly options: PiCustomEditorOptions) {}
 
-	render(width: number, renderNative: (width: number) => string[]): string[] {
+	render(width: number, renderNative: (width: number) => string[], operationStatus?: string): string[] {
 		const safeWidth = Math.max(1, width);
 		const composition = resolveEditorComposition(getCustomEditorSettings());
 		const elapsedMs = this.options.state.elapsed();
@@ -70,7 +70,7 @@ class CompositionRenderer {
 			...renderEditorComposition(this.options.theme, composition.style, {
 				width: safeWidth,
 				content,
-				topStatus,
+				topStatus: operationStatus ? { left: operationStatus } : topStatus,
 				active: this.options.state.active,
 				elapsedMs,
 			}),
@@ -87,13 +87,17 @@ export class PiCustomEditor extends SemanticEditor {
 		keybindings: KeybindingsManager,
 		private readonly options: PiCustomEditorOptions,
 	) {
-		super(tui, options.theme, keybindings);
+		super(tui, options.theme, keybindings, true);
 		this.composition = new CompositionRenderer(options);
 	}
 
 	render(width: number): string[] {
 		this.options.layout.reconcile(this);
-		return this.composition.render(width, (contentWidth) => super.render(contentWidth));
+		return this.composition.render(
+			width,
+			(contentWidth) => super.render(contentWidth),
+			this.renderOperationStatus(Math.max(1, width - 8)),
+		);
 	}
 }
 
