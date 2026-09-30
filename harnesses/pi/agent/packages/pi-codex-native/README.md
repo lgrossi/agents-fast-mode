@@ -159,6 +159,7 @@ is installed; otherwise the defaults apply.
 | Key | Default | Values |
 | --- | --- | --- |
 | `cacheDiagnostics` | `off` | `off`, `status`, `status-and-log` |
+| `portableCompaction` | `false` | boolean; readable summary alongside native compaction |
 | `fallbackCompaction` | `true` | boolean |
 | `fastModeDefault` | `false` | boolean |
 | `contextWindowPreset` | `balanced` | `smart`, `balanced`, `enhanced`, `large`, `max` |
@@ -228,3 +229,10 @@ from `PI_CODEX_BASE_URL` or the default Codex backend.
 Source: https://github.com/luan/agents, directory
 harnesses/pi/agent/packages/pi-codex-native. Run `bun run typecheck` and
 `bun test test` in that directory.
+
+## Portable compaction
+
+Enable `portableCompaction` to save a readable Pi summary alongside the native
+encrypted checkpoint for provider switching. It adds a summarization request.
+The optional `pi-context/checkpoint/v1` capability also supplies encrypted
+checkpoints to context-window extensions while preserving endpoint validation.

@@ -23,6 +23,15 @@ export function codexContextWindowLabel(preset: ContextWindowPreset): string {
 }
 
 const definitions = {
+	portableCompaction: {
+		category: "behavior",
+		type: "boolean",
+		default: false,
+		apply: "live",
+		label: "Portable compaction summary",
+		description:
+			"Generate a readable Pi summary beside each encrypted Codex checkpoint for provider switching. Adds a summarization request.",
+	},
 	cacheDiagnostics: {
 		label: "Cache diagnostics",
 		description: "Show Codex cache status or also write private diagnostic logs.",
