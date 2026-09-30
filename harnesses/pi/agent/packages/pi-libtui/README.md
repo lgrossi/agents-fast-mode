@@ -125,6 +125,10 @@ editors), `SelectionActionBar` (pi-copy-mode), `FramedEditorOverlay`,
 `mountHoverTooltip`, `FloatingOverlay`, `ActivityIndicator` styles, and
 `applyScrollbar`. Add them here when a gallery recording shows them in use.
 
+`SemanticInput` supports inline fields through an optional `onFocus` callback
+and an empty-field `emptyHint`. The embedding component owns keyboard focus
+and restoration; libtui owns pointer targeting and the insertion cursor.
+
 ## Public modules
 
 Every entry point is a side-effect-free import. "Host required" means the

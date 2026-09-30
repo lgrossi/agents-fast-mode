@@ -1,9 +1,9 @@
 import type { ExtensionAPI, ExtensionContext, Theme } from "@earendil-works/pi-coding-agent";
 import type { KeyId, TUI } from "@earendil-works/pi-tui";
 import type { DialogHost } from "@luan.sh/pi-libtui";
-import type { SettingsEdit, SettingsSyncResult } from "../config/pi-settings-sync.ts";
 import { piSettingDefinitions } from "../config/pi-settings.ts";
-import { setPath, type SettingsRecord } from "../config/store.ts";
+import type { SettingsEdit, SettingsSyncResult } from "../config/pi-settings-sync.ts";
+import { type SettingsRecord, setPath } from "../config/store.ts";
 import type { SettingRegistration, SettingValue, XSettingsRegistry } from "../protocol/settings.ts";
 import { applyLiveTheme, applySavedSettings } from "../runtime/apply.ts";
 import { resolveRegistrationValues } from "../runtime/settings.ts";
@@ -62,7 +62,12 @@ export class XSettingsEditorSession {
 		tui: TUI,
 		theme: Theme,
 		onClose: () => void,
-		options: { readonly heightOffset: number; readonly dialogHost?: DialogHost; readonly sidebarToggleKey?: KeyId },
+		options: {
+			readonly heightOffset: number;
+			readonly dialogHost?: DialogHost;
+			readonly sidebarToggleKey?: KeyId;
+			readonly requestRender: () => void;
+		},
 	): XSettingsScreen {
 		return new XSettingsScreen(
 			this.fields,
@@ -99,7 +104,7 @@ export class XSettingsEditorSession {
 			this.modelOptions,
 			undefined,
 			options.dialogHost,
-			() => tui.requestRender(),
+			options.requestRender,
 			options.sidebarToggleKey,
 			(id, value) => this.preview(id, value),
 		);

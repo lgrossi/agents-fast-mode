@@ -138,6 +138,7 @@ export default function xsettingsExtension(pi: ExtensionAPI): void {
 					create: (host, theme) => {
 						const screen = panelEditor!.createScreen(host.tui, theme, closePanelEditor, {
 							heightOffset: 1,
+							requestRender: () => host.requestRender(),
 							sidebarToggleKey,
 						});
 						activeScreen = screen;
@@ -160,6 +161,7 @@ export default function xsettingsExtension(pi: ExtensionAPI): void {
 				};
 				const screen = editor.createScreen(tui, theme, close, {
 					heightOffset: 2,
+					requestRender: () => tui.requestRender(),
 					dialogHost: offsetDialogHost(dialogs, { row: 1, col: 1 }),
 					sidebarToggleKey,
 				});

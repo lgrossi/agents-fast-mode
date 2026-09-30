@@ -43,6 +43,10 @@ at once. Other settings need a reload: when the editor was opened from
 `/xsettings`, Pi reloads after you close it; otherwise it tells you to run
 `/reload`.
 
+The mouse wheel scrolls the column under the pointer: the category sidebar or
+the settings content. Reaching either end keeps scrolling inside Settings; it
+does not move the conversation behind the pane.
+
 ## `xsettings.toml`
 
 The file lives in Pi's agent directory, normally `~/.pi/agent/xsettings.toml`.
