@@ -1,3 +1,5 @@
+import { registerAutoReasoning } from "./tools/change-reasoning/definition.ts";
+import { registerModelToolPolicy } from "./contributions/model-tool-policy.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import registerNativeCompaction from "./compaction/index.ts";
 import { applyCodexCompatibility } from "./compatibility.ts";
@@ -70,7 +72,10 @@ export function registerCodexNativeLifecycle(
 
 export default function codexNativeExtension(pi: ExtensionAPI): void {
 	const unregisterPromptPayloadAdapter = registerCodexPromptPayloadAdapter();
+	const unregisterModelToolPolicy = registerModelToolPolicy(pi);
+	registerAutoReasoning(pi);
 	const webRunTool = createWebRunTool();
+
 	const runtime = registerOpenAICodexProvider(pi);
 	let applyingModelCompatibility = false;
 	const applyModelCompatibility = async (_event: unknown, ctx: ExtensionContext): Promise<void> => {
@@ -104,6 +109,7 @@ export default function codexNativeExtension(pi: ExtensionAPI): void {
 	pi.on("session_shutdown", (event) => {
 		if (event.reason !== "reload" && event.reason !== "quit") return;
 		unregisterPromptPayloadAdapter();
+		unregisterModelToolPolicy();
 		fastMode.dispose();
 		contextWindow.dispose();
 		unregisterXSettings();

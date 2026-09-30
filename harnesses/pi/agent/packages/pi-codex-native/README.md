@@ -29,8 +29,9 @@ Optional companions:
   settings below and binds the package's actions to keys from
   `keybindings.json`. Without it, compiled defaults apply and no keys are
   bound.
-- `pi install npm:@cfcluan/pi-code-mode` exposes `web__run` inside Code Mode
-  scripts as well as directly. Without it, `web__run` is only a direct tool.
+
+Pi 0.99's built-in codemode calls the registered `web__run` tool without a
+separate adapter package.
 
 ## Sign in and use
 
@@ -49,19 +50,17 @@ needed. Check the provider without starting a session with:
 pi auth check --provider openai-codex
 ```
 
-The package provides these models:
+Requires Pi 0.99.1 or later. Model availability, prices, reasoning levels,
+compatibility flags, and image profiles come from Pi's built-in OpenAI Codex
+catalog. With Pi 0.99.1 this includes GPT-6.1 Sol, GPT-6 Sol, Astra, and Luna,
+and excludes retired GPT-5.4 entries.
+Catalog updates no longer require a second model table in this extension.
 
-| Model | Input | Notes |
-| --- | --- | --- |
-| `gpt-5.3-codex-spark` | Text | 128k context. |
-| `gpt-5.4` | Text, images | Tool search. |
-| `gpt-5.4-mini` | Text, images | Tool search. |
-| `gpt-5.5` | Text, images | Tool search. |
-| `gpt-5.6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra` | Text, images | Additional tools, tool search, reasoning through `max`. |
-| `gpt-6-astra` | Text, images | Same as GPT-5.6; cost estimates are zero until verified pricing is available. |
-
-All models default to a 272k context window (128k for Spark) and 128k max
-output tokens. GPT-5.6 models and GPT-6 Astra use the context presets below.
+The provider preserves ordered system-prompt and tool changes in Pi's transcript,
+including after resume. Tools added mid-conversation retain their original
+boundary; tool removals and redefinitions use Pi's current-tool fallback.
+Thinking Off follows the model's declared effort mapping, including models
+that do not support Off.
 
 Use a model explicitly when needed:
 
@@ -69,14 +68,56 @@ Use a model explicitly when needed:
 pi --model openai-codex/gpt-5.6-luna
 ```
 
+## Persistent mode
+
+Choose **Reasoning mode (this session) → Persistent** in Codex Native settings.
+Astra delivers answers while continuing useful authorized follow-up, including
+waiting for results. **Use Pi thinking level** restores ordinary operation.
+The selection applies immediately and is saved with the session, including forks
+and resume. Other sessions keep their own selection.
+
+The provider uses Astra's catalog instructions, Codex's fallback for other models,
+and the `disabled` API effort value for Persistent. Instruction changes and UTC
+reminders are recorded with the session and replayed at their original boundaries.
+Pi continues to own execution, cancellation, and session history.
+
+**Current time reminders** defaults to **Auto**, which enables them with Persistent.
+**On** enables reminders independently; **Off** stops new reminders. Set the interval
+in whole seconds; **0** allows a reminder before every eligible inference. Delivery
+can be **Any inference** or **After user or tool output**. New context windows receive
+an initial reminder regardless of the interval.
+
+Async questions, messages, and clock tools are supplied by `pi-conversation`.
+Their availability follows the model catalog and Codex Native's tool settings.
+
+## Astra effort changes
+
+Astra keeps the original reasoning effort in the request and receives native
+`configuration_update` items when effort changes. The provider records those
+boundaries in the Pi session, including after resume. Successful compaction
+establishes a new effort baseline.
+
+Enable **Auto reasoning** to expose `change_reasoning` to Astra in ordinary
+reasoning mode. It can request low, medium, or high effort, with your starting
+level as the floor. The extension restores the starting level when work ends;
+a later manual change takes precedence. The tool is unavailable in Persistent
+mode and on other models, including through Code Mode.
+
 ## Fast mode
 
-Fast mode sends Codex priority routing (`service_tier: "priority"` plus the
-`x-codex-routing-hint` header) on every request. It affects native models and
+Fast mode requests priority processing with `service_tier: "priority"` while
+preserving the configured client identity. It affects native models and
 explicitly registered compatible routes. When enabled
 the footer shows `fast`. Each session starts from the `fastModeDefault`
 setting; a model role that already sets `serviceTier: "priority"` keeps fast
 mode on even if you toggle it off.
+
+Pi's generic idle cache warmer is disabled for this provider because Codex cannot
+honor its one-token cap and warming must not advance the live response chain.
+Normal prewarming uses the fully prepared request. The ChatGPT-backed endpoint
+rejects both `prompt_cache_options` and `prompt_cache_retention`; API retention
+settings cannot be applied to this route. Cache reuse also requires stable prompt
+content: session-scoped developer message IDs must survive extension reloads.
 
 ## Context window
 
@@ -91,7 +132,8 @@ preserved for compatibility with older `pi-codex-native` SDK copies.
 `contextAutoUpgrade` controls what happens when Pi reaches its compaction
 threshold: `never` compacts, `mid-turn` moves to the next tier after a tool
 turn that crosses the threshold and compacts once the run ends, and `always`
-moves up a tier instead of compacting until `max` is reached.
+moves up a tier instead of compacting until `max` is reached. Mid-turn checks
+use Pi's effective response reserve, including per-model compaction overrides.
 
 ## Keybindings
 
@@ -152,13 +194,23 @@ compaction, prompt-envelope/response handling, diagnostics tied to native
 transport, and `web__run` are intentionally not registered for compatible
 providers because they use separate Codex services or wire protocols.
 
-Settings use namespace `pi-codex-native` (label "Codex Native"), all in the
-`behavior` category. Edit them with `/xsettings` when `pi-xsettings`
+Settings use namespace `pi-codex-native` (label "Codex Native"), in the
+`behavior` and `tools` categories. `reasoningMode` is stored in the current
+session. Edit them with `/xsettings` when `pi-xsettings`
 is installed; otherwise the defaults apply.
 
 | Key | Default | Values |
 | --- | --- | --- |
+| `reasoningMode` | `pi` | `pi`, `persistent` |
+| `currentTimeReminder` | `auto` | `auto`, `on`, `off` |
+| `currentTimeReminderIntervalSeconds` | `"1"` | Whole seconds as a decimal string, from `0` through `18446744073709551615` |
+| `currentTimeReminderDelivery` | `any_inference` | `any_inference`, `after_user_or_tool_output` |
+| `currentTimeReminderSleep` | `auto` | `auto`, `on`, `off` |
+| `sleepTool` | `true` | boolean |
+| `sleepToolMode` | `model_driven` | `model_driven`, `always_on` |
+| `sendMessageToUserAsync` | `false` | boolean |
 | `cacheDiagnostics` | `off` | `off`, `status`, `status-and-log` |
+| `autoReasoning` | `false` | boolean; Astra only |
 | `portableCompaction` | `false` | boolean; readable summary alongside native compaction |
 | `fallbackCompaction` | `true` | boolean |
 | `fastModeDefault` | `false` | boolean |
@@ -174,6 +226,10 @@ is installed; otherwise the defaults apply.
   (custom `/compact` guidance is ignored with a warning). When remote
   compaction fails, `true` lets Pi compact locally, including the last remote
   checkpoint; `false` cancels compaction with an error notice.
+- `portableCompaction`: generates a readable summary alongside a native
+  encrypted checkpoint, allowing Pi to carry context when switching providers.
+  It applies when native compaction owns the window; Context Windows supplies
+  its own generated-summary option when installed.
 - `textVerbosity`: sets `text.verbosity` on each provider request.
 
 ## `web__run`
@@ -221,7 +277,6 @@ from `PI_CODEX_BASE_URL` or the default Codex backend.
 | Typed settings | `src/contributions/xsettings.ts` |
 | Cache diagnostics status and logs | `src/diagnostics/` |
 | Developer-message serialization | `src/prompt-payload-adapter.ts` |
-| Code Mode bridge | `src/code-mode-tool-adapter.ts` |
 | `web__run` schema, process, result, rendering | `src/tools/web-run/` |
 
 ## Develop
@@ -230,9 +285,16 @@ Source: https://github.com/luan/agents, directory
 harnesses/pi/agent/packages/pi-codex-native. Run `bun run typecheck` and
 `bun test test` in that directory.
 
-## Portable compaction
+## Recoverable context windows
 
-Enable `portableCompaction` to save a readable Pi summary alongside the native
-encrypted checkpoint for provider switching. It adds a summarization request.
-The optional `pi-context/checkpoint/v1` capability also supplies encrypted
-checkpoints to context-window extensions while preserving endpoint validation.
+When `pi-context-windows` is installed, the optional `pi-context/window/v1` capability
+owns compaction and model-visible window projection. This provider resets its
+transport continuation when the window changes and skips stale checkpoint
+replay. It provides `pi-context/checkpoint/v1` for hybrid rollover: Context Windows
+stores the generated encrypted checkpoint with its notes and readable summary;
+this provider validates and replays only that window’s checkpoint. Endpoint
+mismatches or checkpoint failures preserve the outgoing context and report an error. Normal tool requests are checked for the current window marker before
+sending. Branch-summary requests keep their independent request context.
+Without the capability, native remote compaction retains its existing behavior.
+
+See [conversation and context recovery](../../../../../docs/pi-context-and-conversation.md).
