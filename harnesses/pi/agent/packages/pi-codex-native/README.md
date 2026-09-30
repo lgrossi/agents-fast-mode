@@ -103,6 +103,19 @@ level as the floor. The extension restores the starting level when work ends;
 a later manual change takes precedence. The tool is unavailable in Persistent
 mode and on other models, including through Code Mode.
 
+## Usage and Reserve
+
+Press **Alt+U** in the managed harness to open the usage overlay with remaining
+allowances, reset times, and available reset
+credits. Refresh reads account state without spending a credit.
+**Redeem one credit** requires confirmation for that redemption and uses a
+durable request ID so an uncertain response can be retried safely.
+
+Reserve handling follows backend authorization and account identity. It does
+not silently turn a quota failure into a retry or redeem a credit. Requests
+using the Reserve model retain their own identity instead of changing the
+normal Luna model.
+
 ## Fast mode
 
 Fast mode requests priority processing with `service_tier: "priority"` while
@@ -137,10 +150,11 @@ use Pi's effective response reserve, including per-model compaction overrides.
 
 ## Keybindings
 
-The package registers two actions:
+The package registers these actions:
 
 | Action | Effect |
 | --- | --- |
+| `codex.usage.open` | Open allowances and reset credits. |
 | `codex.fast.toggle` | Toggle fast mode for the current session. |
 | `codex.context.cycle` | Move to the next context preset (wraps after `max`). |
 
@@ -210,6 +224,7 @@ is installed; otherwise the defaults apply.
 | `sleepToolMode` | `model_driven` | `model_driven`, `always_on` |
 | `sendMessageToUserAsync` | `false` | boolean |
 | `cacheDiagnostics` | `off` | `off`, `status`, `status-and-log` |
+| `lunaReserve` | `true` | boolean; backend-authorized fallback after a quota error |
 | `autoReasoning` | `false` | boolean; Astra only |
 | `portableCompaction` | `false` | boolean; readable summary alongside native compaction |
 | `fallbackCompaction` | `true` | boolean |

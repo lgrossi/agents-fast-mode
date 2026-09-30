@@ -32,6 +32,15 @@ const definitions = {
 		description:
 			"Generate a readable Pi summary beside each encrypted Codex checkpoint for provider switching. Adds a summarization request.",
 	},
+	lunaReserve: {
+		label: "Luna Reserve",
+		description:
+			"After quota exhaustion, switch only when the backend authorizes Reserve. Wait for your next input; restore the original model when ordinary quota returns.",
+		category: "behavior",
+		type: "boolean",
+		default: true,
+		apply: "live",
+	},
 	autoReasoning: {
 		label: "Auto reasoning (Astra)",
 		description:

@@ -1,3 +1,4 @@
+import { registerQuotaManagement } from "./quota/extension.ts";
 import { registerAutoReasoning } from "./tools/change-reasoning/definition.ts";
 import { registerModelToolPolicy } from "./contributions/model-tool-policy.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
@@ -74,6 +75,7 @@ export default function codexNativeExtension(pi: ExtensionAPI): void {
 	const unregisterPromptPayloadAdapter = registerCodexPromptPayloadAdapter();
 	const unregisterModelToolPolicy = registerModelToolPolicy(pi);
 	registerAutoReasoning(pi);
+	registerQuotaManagement(pi);
 	const webRunTool = createWebRunTool();
 
 	const runtime = registerOpenAICodexProvider(pi);
