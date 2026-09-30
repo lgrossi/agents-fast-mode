@@ -58,6 +58,7 @@ export function createSpawnAgentTool(
 ): ToolDefinition<typeof PARAMETERS, SpawnAgentDetails> {
 	return {
 		name: AGENT_TOOLS.spawnAgent,
+		exposure: "model-only",
 		label: "Spawn Agent",
 		description:
 			"Spawn an agent for one concrete, bounded task that can run independently. The returned canonical task path remains addressable for messages and follow-up turns. Successful completion is delivered automatically to the direct parent as a hidden FINAL_ANSWER mailbox message.",

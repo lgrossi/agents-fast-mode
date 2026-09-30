@@ -135,7 +135,6 @@ export type CodexProviderStreamOptions = SimpleStreamOptions & {
 };
 export type CodexReasoningEffort = "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 export type OpenAICodexStreamOptions = CodexProviderStreamOptions & {
-	codeModeToolNames?: readonly string[] | undefined;
 	reasoningEffort?: CodexReasoningEffort | undefined;
 	grammarToolInputProperties?: ReadonlyMap<string, string> | undefined;
 	onOutputItemDone?: ((item: unknown) => void) | undefined;

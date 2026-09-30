@@ -1,5 +1,5 @@
 import type { AgentMessage, ThinkingLevel } from "@earendil-works/pi-agent-core";
-import { clampThinkingLevel, getSupportedThinkingLevels, type Api, type Model } from "@earendil-works/pi-ai";
+import { type Api, clampThinkingLevel, getSupportedThinkingLevels, type Model } from "@earendil-works/pi-ai";
 import {
 	type AgentSession,
 	type AgentSessionEvent,
@@ -7,9 +7,13 @@ import {
 	type CreateAgentSessionRuntimeResult,
 	createAgentSession,
 	createAgentSessionRuntime,
+	createCodemodeExtension,
+	createMcpExtension,
+	createToolSearchExtension,
 	DefaultResourceLoader,
 	type ExtensionAPI,
 	type ExtensionContext,
+	type InlineExtension,
 	getAgentDir,
 	type ModelRuntime,
 	type SessionEntry,
@@ -17,14 +21,19 @@ import {
 	type SessionStartEvent,
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
-import { listCodeModeToolNames } from "@luan.sh/pi-code-mode/sdk";
 import { SUBAGENT_TASK_MESSAGE_TYPE } from "../core/fork-history.ts";
-import { primePromptEnvelope } from "../protocol/prompt-envelope.ts";
 import { buildAgentPrompt } from "../core/prompts.ts";
 import type { AgentConfig, AgentModelReference } from "../core/types.ts";
-import { createNestedToolActivityReader } from "./nested-tool-activity.ts";
+import { primePromptEnvelope } from "../protocol/prompt-envelope.ts";
 
 type AssistantContent = Extract<AgentMessage, { role: "assistant" }>["content"];
+
+// SDK sessions opt into the same built-ins as the CLI, including its disable settings.
+const BUILTIN_EXTENSIONS: InlineExtension[] = [
+	{ name: "codemode", factory: createCodemodeExtension(), builtin: true, replaceable: true },
+	{ name: "tool-search", factory: createToolSearchExtension(), builtin: true, replaceable: true },
+	{ name: "mcp", factory: createMcpExtension(), builtin: true, replaceable: true },
+];
 
 function extractText(content: AssistantContent): string {
 	return content
@@ -148,19 +157,13 @@ function forwardAbortSignal(session: AgentSession, signal?: AbortSignal): () => 
 
 function subscribeToolActivity(session: AgentSession, onToolActivity?: (activity: ToolActivity) => void): () => void {
 	if (!onToolActivity) return () => {};
-	const nestedActivity = createNestedToolActivityReader();
 	return session.subscribe((event: AgentSessionEvent) => {
-		if (event.type === "tool_execution_start") onToolActivity({ type: "start", toolName: event.toolName });
-		if (event.type === "tool_execution_update") {
-			for (const toolName of nestedActivity.started(event.partialResult)) {
-				onToolActivity({ type: "start", toolName, nested: true });
-			}
-		}
-		if (event.type === "tool_execution_end") {
-			for (const toolName of nestedActivity.ended(event.result)) {
-				onToolActivity({ type: "end", toolName, nested: true });
-			}
-			onToolActivity({ type: "end", toolName: event.toolName });
+		if (event.type === "tool_execution_start" || event.type === "tool_execution_end") {
+			onToolActivity({
+				type: event.type === "tool_execution_start" ? "start" : "end",
+				toolName: event.toolName,
+				nested: event.parentToolCallId !== undefined,
+			});
 		}
 	});
 }
@@ -196,22 +199,19 @@ export function parseModelSelector(value: string): string {
 	return selector;
 }
 
-export function resolveChildToolNames(active: readonly string[], lifted: readonly string[]): string[] {
-	return [...new Set([...active, ...lifted])];
-}
-
 export async function prepareAgentRun(
 	ctx: ExtensionContext,
 	options: Pick<RunOptions, "agentConfig" | "collaboration" | "cwd" | "pi" | "onRuntimeResolved">,
 	loadResources = true,
 ): Promise<PreparedAgentRun> {
 	const effectiveCwd = options.cwd ?? ctx.cwd;
-	const toolNames = resolveChildToolNames(options.pi.getActiveTools(), listCodeModeToolNames());
+	const toolNames = options.pi.getActiveTools();
 	const systemPrompt = buildAgentPrompt(ctx.getSystemPrompt(), options.collaboration);
 	const agentDir = getAgentDir();
 	const loader = new DefaultResourceLoader({
 		cwd: effectiveCwd,
 		agentDir,
+		extensionFactories: BUILTIN_EXTENSIONS,
 		noSkills: false,
 		noPromptTemplates: true,
 		noThemes: true,
@@ -293,6 +293,7 @@ export async function runAgent(ctx: ExtensionContext, prompt: string, options: R
 		const resourceLoader = new DefaultResourceLoader({
 			cwd,
 			agentDir: resourceAgentDir,
+			extensionFactories: BUILTIN_EXTENSIONS,
 			noSkills: false,
 			noPromptTemplates: true,
 			noThemes: true,

@@ -13,7 +13,7 @@ afterEach(() => {
 function release(tag: string, action = "publish") {
 	const directory = mkdtempSync(join(tmpdir(), "pi-release-"));
 	directories.push(directory);
-	for (const name of ["pi-code-mode", "pi-libtui"]) {
+	for (const name of ["pi-exec-command", "pi-libtui"]) {
 		const packageDirectory = join(directory, "harnesses/pi/agent/packages", name);
 		mkdirSync(packageDirectory, { recursive: true });
 		writeFileSync(join(packageDirectory, "package.json"), JSON.stringify({ name: `@luan.sh/${name}`, version: "0.3.8" }));
@@ -33,14 +33,14 @@ function release(tag: string, action = "publish") {
 }
 
 test("publishes only the named package even when another has the same version", () => {
-	expect(release("@luan.sh/pi-code-mode@0.3.8")).toEqual({
+	expect(release("@luan.sh/pi-exec-command@0.3.8")).toEqual({
 		status: 0,
-		calls: "pi-publish\nharnesses/pi/agent/packages/pi-code-mode\n",
+		calls: "pi-publish\nharnesses/pi/agent/packages/pi-exec-command\n",
 		error: "",
 	});
 });
 
-test.each(["v0.3.8", "main", "pi-code-mode/v0.3.8", "@else/pi-code-mode@0.3.8", "@luan.sh/../pi-code-mode@0.3.8", "@luan.sh/pi-code-mode@0.3.8/extra"])(
+test.each(["v0.3.8", "main", "pi-exec-command/v0.3.8", "@else/pi-exec-command@0.3.8", "@luan.sh/../pi-exec-command@0.3.8", "@luan.sh/pi-exec-command@0.3.8/extra"])(
 	"rejects a non-package release tag: %s",
 	(tag) => {
 		const result = release(tag);
@@ -50,28 +50,28 @@ test.each(["v0.3.8", "main", "pi-code-mode/v0.3.8", "@else/pi-code-mode@0.3.8", 
 );
 
 test("rejects a tag that does not match the selected manifest version", () => {
-	const result = release("@luan.sh/pi-code-mode@0.3.9");
+	const result = release("@luan.sh/pi-exec-command@0.3.9");
 	expect(result.status).not.toBe(0);
 	expect(result.calls).toBe("");
 	expect(result.error).toContain("does not match");
 });
 
-test.each(["", "@luan.sh/pi-code-mode@0.3.8", "pi-code-mode@0.3.8"])(
+test.each(["", "@luan.sh/pi-exec-command@0.3.8", "pi-exec-command@0.3.8"])(
 	"publishes only missing names in a dual release (existing: %s)",
 	(existing) => {
 		const directory = mkdtempSync(join(tmpdir(), "pi-dual-release-"));
 		directories.push(directory);
-		const packageDirectory = join(directory, "harnesses/pi/agent/packages/pi-code-mode");
+		const packageDirectory = join(directory, "harnesses/pi/agent/packages/pi-exec-command");
 		mkdirSync(packageDirectory, { recursive: true });
 		writeFileSync(
 			join(packageDirectory, "package.json"),
-			JSON.stringify({ name: "@luan.sh/pi-code-mode", version: "0.3.8", publishAliases: ["pi-code-mode"] }),
+			JSON.stringify({ name: "@luan.sh/pi-exec-command", version: "0.3.8", publishAliases: ["pi-exec-command"] }),
 		);
 		for (const args of [
 			["init", "--quiet"],
 			["add", "."],
 			["-c", "user.name=Release Test", "-c", "user.email=release@example.test", "commit", "--quiet", "-m", "fixture"],
-			["tag", "@luan.sh/pi-code-mode@0.3.8"],
+			["tag", "@luan.sh/pi-exec-command@0.3.8"],
 		]) {
 			expect(Bun.spawnSync(["git", ...args], { cwd: directory }).exitCode).toBe(0);
 		}
@@ -99,7 +99,7 @@ test.each(["", "@luan.sh/pi-code-mode@0.3.8", "pi-code-mode@0.3.8"])(
 		);
 		expect(result.stderr.toString()).toBe("");
 		expect(result.exitCode).toBe(0);
-		const expected = ["@luan.sh/pi-code-mode", "pi-code-mode"].filter((name) => `${name}@0.3.8` !== existing);
+		const expected = ["@luan.sh/pi-exec-command", "pi-exec-command"].filter((name) => `${name}@0.3.8` !== existing);
 		expect(readFileSync(packed, "utf8").trim().split("\n")).toEqual(expected);
 		expect(readFileSync(published, "utf8").trim().split("\n")).toHaveLength(expected.length);
 	},
@@ -107,15 +107,15 @@ test.each(["", "@luan.sh/pi-code-mode@0.3.8", "pi-code-mode@0.3.8"])(
 
 
 test("build-only mode cannot publish during initial registration", () => {
-	expect(release("@luan.sh/pi-code-mode@0.3.8", "pack")).toEqual({
+	expect(release("@luan.sh/pi-exec-command@0.3.8", "pack")).toEqual({
 		status: 0,
-		calls: "pi-pack\nharnesses/pi/agent/packages/pi-code-mode\n",
+		calls: "pi-pack\nharnesses/pi/agent/packages/pi-exec-command\n",
 		error: "",
 	});
 });
 
 test("rejects an unknown action without invoking publishing", () => {
-	const result = release("@luan.sh/pi-code-mode@0.3.8", "invalid");
+	const result = release("@luan.sh/pi-exec-command@0.3.8", "invalid");
 	expect(result.status).not.toBe(0);
 	expect(result.calls).toBe("");
 });

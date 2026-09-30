@@ -20,6 +20,7 @@ export function createInterruptAgentTool(
 ): ToolDefinition<typeof PARAMETERS, InterruptAgentDetails> {
 	return {
 		name: AGENT_TOOLS.interruptAgent,
+		exposure: "model-only",
 		label: "Interrupt Agent",
 		description:
 			"Interrupt an agent's current turn, if any, and return its previous status. The agent remains available for messages and follow-up tasks.",

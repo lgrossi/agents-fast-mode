@@ -4,12 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { AgentMessage, ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { Api, Model } from "@earendil-works/pi-ai";
-import { SessionManager } from "@earendil-works/pi-coding-agent";
+import { createAgentSession, ModelRuntime, SessionManager, SettingsManager } from "@earendil-works/pi-coding-agent";
 import type { AgentConfig } from "../src/core/types.ts";
 import {
 	findRetryableError,
 	prepareAgentRun,
-	resolveChildToolNames,
 	resolveModel,
 	resumeAgent,
 	runAgent,
@@ -295,25 +294,37 @@ test("inherits the parent's active tool names and installed project skills", asy
 
 	try {
 		const prepared = await prepareAgentRun(context({ cwd, systemPrompt: "# Parent identity" }), {
-			pi: pi(["read", "spawn_agent"]),
+			pi: pi(["read", "spawn_agent", "codemode", "tool_search"]),
 			agentConfig: {},
 		});
 
 		expect(prepared.toolNames).toEqual(expect.arrayContaining(["read", "spawn_agent"]));
 		expect(prepared.loader.getSkills().skills.map((skill) => skill.name)).toContain("runner-inherited");
 		expect(prepared.systemPrompt).toBe("# Parent identity");
+		const runtime = await ModelRuntime.create({
+			authPath: join(cwd, "auth.json"),
+			modelsPath: null,
+			modelsStorePath: join(cwd, "models.json"),
+			refreshOnCreate: false,
+		});
+		const { session } = await createAgentSession({
+			cwd,
+			agentDir: cwd,
+			modelRuntime: runtime,
+			model: model("fixture"),
+			settingsManager: SettingsManager.inMemory(),
+			sessionManager: SessionManager.inMemory(),
+			resourceLoader: prepared.loader,
+			tools: prepared.toolNames,
+		});
+		try {
+			expect(session.getActiveToolNames()).toEqual(expect.arrayContaining(["codemode", "tool_search"]));
+		} finally {
+			session.dispose();
+		}
 	} finally {
 		await rm(cwd, { recursive: true, force: true });
 	}
-});
-
-test("inherits tools lifted behind code mode into child sessions", async () => {
-	expect(resolveChildToolNames(["exec", "spawn_agent"], ["exec_command", "write_stdin", "exec"])).toEqual([
-		"exec",
-		"spawn_agent",
-		"exec_command",
-		"write_stdin",
-	]);
 });
 
 function assistant(stopReason: "stop" | "error"): Extract<AgentMessage, { role: "assistant" }> {

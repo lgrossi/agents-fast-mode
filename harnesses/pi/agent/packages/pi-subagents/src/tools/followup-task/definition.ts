@@ -21,6 +21,7 @@ export function createFollowupTaskTool(
 ): ToolDefinition<typeof PARAMETERS, FollowupTaskDetails> {
 	return {
 		name: AGENT_TOOLS.followupTask,
+		exposure: "model-only",
 		label: "Follow Up Agent",
 		description:
 			"Send a follow-up task to an existing non-root agent and trigger a turn when it is idle. A running agent receives it at a message boundary or after its pending tool call.",

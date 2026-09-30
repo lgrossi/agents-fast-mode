@@ -1,5 +1,4 @@
 import { type ExtensionAPI, type ExtensionContext, resizeImage } from "@earendil-works/pi-coding-agent";
-import { registerViewImageCodeModeAdapter } from "./code-mode-adapter.ts";
 import { ImageAttachmentStore } from "./core/attachments.ts";
 import { createImageClamp, MAX_IMAGE_DIMENSION } from "./image-limits.ts";
 import { resolveViewImageBinary } from "./native/binary.ts";
@@ -63,12 +62,10 @@ export default function viewImageExtension(pi: ExtensionAPI): void {
 		const messages = clamped ?? labelled;
 		return messages ? { messages } : undefined;
 	});
-	const disposeCodeModeAdapter = registerViewImageCodeModeAdapter(tool);
-	pi.on("session_shutdown", (event) => {
+	pi.on("session_shutdown", () => {
 		removeImagePasteSession?.();
 		removeImagePasteSession = undefined;
 		transcriptContext = undefined;
 		attachments.clear();
-		if (event.reason === "reload" || event.reason === "quit") disposeCodeModeAdapter();
 	});
 }

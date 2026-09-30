@@ -51,6 +51,9 @@ neither a generated 256-color palette nor an ANSI base-16 palette, the host
 switches to Pi's built-in theme for the detected light or dark scheme (dark if
 the measurement fails).
 
+Requires Pi 0.99.1 or later. Pi supplies the default colors and ANSI palette;
+libtui also measures the indexed palette anchors.
+
 ## Components
 
 Captures of the shared components inside the extensions that use them. The
@@ -84,10 +87,10 @@ pi-exec-command Process Hub attached to a running server.
 
 ![Detail card in pi-copy-mode](https://pi.luan.sh/media/libtui/detail-card.png)
 
-`ToolActivity` and `ToolTranscript` from `pi-libtui/tool`: pi-tool-search
-and pi-exec-command rows collapsed into an `Explored` group.
+`ToolActivity` and `ToolTranscript` from `pi-libtui/tool`: tool rows
+collapsed into an `Explored` group.
 
-![ToolActivity rows in pi-tool-search](https://pi.luan.sh/media/libtui/tool-activity.png)
+![ToolActivity rows](https://pi.luan.sh/media/libtui/tool-activity.png)
 
 `ProgressBar`, `renderPill`, and `renderEditorTokenPills`: the
 pi-custom-editor status row and file tokens.

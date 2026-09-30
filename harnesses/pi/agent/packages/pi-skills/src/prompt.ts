@@ -40,7 +40,7 @@ export function registerSkillsPromptContribution(
 		content: ({ systemPromptOptions, activeTools }) => {
 			const visibility = getSettings().catalogVisibility;
 			if (visibility === "off") return undefined;
-			if (visibility === "when-active" && !activeTools.includes("skill") && !activeTools.includes("exec")) {
+			if (visibility === "when-active" && !activeTools.includes("skill") && !activeTools.includes("codemode")) {
 				return undefined;
 			}
 			return renderSkillsCatalog(systemPromptOptions.skills ?? []);
@@ -60,7 +60,7 @@ export function renderSkillsCatalog(skills: readonly Skill[]): string | undefine
 		"A skill is a set of instructions in a `SKILL.md` file.",
 		"- Use a skill when the user names it or when the task clearly matches its description.",
 		"- Use the smallest set of skills that covers the request.",
-		"- Call `tools.skill` with the exact skill name inside `exec` before you act.",
+		"- Call `tools.skill` with the exact skill name inside `codemode` before you act.",
 		"- The loaded `SKILL.md` body arrives as a contextual user message without frontmatter.",
 		"- Use the returned skill directory to resolve supporting files when it is present.",
 		"- Load only the supporting files required by the task.",

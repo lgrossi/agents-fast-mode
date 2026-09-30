@@ -10,7 +10,6 @@ import {
 	type ActivityAnimationOverrides,
 	terminalBridgeBinaryPath,
 } from "@luan.sh/pi-libtui";
-import { registerCodeModeExecAdapters } from "./code-mode-adapters.ts";
 import { openRegisteredProcessHub, registerProcessHubHost, retainProcessHubAction } from "./contributions/actions.ts";
 import {
 	DEFAULT_EXEC_COMMAND_SETTINGS,
@@ -92,7 +91,7 @@ export default function execCommandExtension(pi: ExtensionAPI): void {
 			},
 		),
 	);
-	let disposeCodeModeAdapters: (() => void) | undefined;
+	let toolsRegistered = false;
 	let processManager: ProcessHubManager | undefined;
 	let processStore: ProcessTerminalStore | undefined;
 	let processWidget: ProcessWidget | undefined;
@@ -124,7 +123,7 @@ export default function execCommandExtension(pi: ExtensionAPI): void {
 		);
 	};
 	const applySettings = (next: ExecCommandSettings): void => {
-		const unchanged = disposeCodeModeAdapters && sameSettings(settings, next);
+		const unchanged = toolsRegistered && sameSettings(settings, next);
 		settings = { ...next };
 		if (settings.processHubPresentation === "fullscreen") processHubPresentation.closeSidePanel();
 		processWidget?.setAnimation(processWidgetAnimation(settings));
@@ -133,8 +132,7 @@ export default function execCommandExtension(pi: ExtensionAPI): void {
 		const writeStdin = createWriteStdinTool(runtime, settings);
 		pi.registerTool(execCommand);
 		pi.registerTool(writeStdin);
-		disposeCodeModeAdapters?.();
-		disposeCodeModeAdapters = registerCodeModeExecAdapters([execCommand, writeStdin], runtime);
+		toolsRegistered = true;
 	};
 	applySettings(settings);
 	const unregisterXSettings = registerExecCommandXSettings(applySettings);
@@ -187,7 +185,6 @@ export default function execCommandExtension(pi: ExtensionAPI): void {
 		processStore = undefined;
 		processManager = undefined;
 		if (event.reason === "reload" || event.reason === "quit") {
-			disposeCodeModeAdapters?.();
 			unregisterXSettings();
 			releaseProcessAction();
 		}

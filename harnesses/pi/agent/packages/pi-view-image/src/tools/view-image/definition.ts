@@ -87,6 +87,7 @@ export function effectiveViewImageParams(params: object, model: ViewImageModel |
 export function createViewImageTool(): ToolDefinition<ViewImageParameters, ViewImageDetails> {
 	return {
 		name: "view_image",
+		exposure: "model-only",
 		label: "view_image",
 		description:
 			"View a local image file from the filesystem when visual inspection is needed. Use this for images already available on disk.",

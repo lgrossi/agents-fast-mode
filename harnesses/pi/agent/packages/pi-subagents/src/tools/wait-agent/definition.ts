@@ -31,6 +31,7 @@ export function createWaitAgentTool(
 ): ToolDefinition<typeof PARAMETERS, WaitAgentDetails> {
 	return {
 		name: AGENT_TOOLS.waitAgent,
+		exposure: "model-only",
 		label: "Wait For Agent",
 		description:
 			"Wait for an agent event. The wait ends on a message, settlement, interruption, timeout, or new input that aborts the active tool call, then returns only a compact status notification. Successful final responses are delivered independently to the parent mailbox.",

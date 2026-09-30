@@ -81,12 +81,12 @@ Combine files when the complete tool remains small. Keep the fixed ownership.
 Omit `presentation.ts` when Pi owns the presentation. Record that choice in
 the README architecture map.
 
-When an ordinary Pi function tool is available through Code Mode, register its
-existing `ToolDefinition` with `registerCodeModeFunctionTool`. The shared bridge
-must reuse `execute`, `renderCall`, and `renderResult`; feature packages must
-not duplicate nested execution or presentation adapters. Reserve the lower-level
-adapter contract for freeform tools and behavior a `ToolDefinition` cannot
-represent.
+Register each tool once with Pi. Use its public `exposure` field to choose
+direct, model-only, codemode, or deferred access. Pi's built-in codemode calls
+the same tool through `ctx.executeTool`, including validation and policy hooks.
+For programmatic results, declare `outputSchema` and return matching
+`structuredContent`. Keep image and orchestration tools `model-only` when
+they need direct content delivery or control the current run.
 
 ## Presentation readiness
 

@@ -41,7 +41,7 @@ describe("terminal color detection", () => {
 			terminal: {
 				write(data: string) {
 					writes.push(data);
-					if (!data.includes("]10;?")) return;
+					if (!data.includes("]4;16;?")) return;
 					listener?.("\x1b]10;rgb:ee/ee/ee\x1b\\");
 					listener?.("\x1b]4;16;rgb:1111/1111/1111\x1b\\");
 					listener?.("\x1b]4;231;rgb:eeee/eeee/eeee\x1b\\");
@@ -53,8 +53,7 @@ describe("terminal color detection", () => {
 					listener = undefined;
 				};
 			},
-			queryTerminalBackgroundColor: async () => rgb(17, 17, 17),
-			queryTerminalColorScheme: async () => "dark",
+			queryTerminalColors: async () => ({ background: rgb(17, 17, 17), foreground: rgb(238, 238, 238) }),
 		} as never as TUI;
 		const profile = await measureTerminalColors(tui, 10);
 		expect(profile.scheme).toBe("dark");
@@ -67,7 +66,7 @@ describe("terminal color detection", () => {
 		const tui = {
 			terminal: {
 				write(data: string) {
-					if (!data.includes("]10;?")) return;
+					if (!data.includes("]4;16;?")) return;
 					listenerResults.push(listener?.("\x1b]10;rgb:aaaa/") as ReturnType<TuiInputListener>);
 					listenerResults.push(
 						listener?.(
@@ -82,8 +81,7 @@ describe("terminal color detection", () => {
 					listener = undefined;
 				};
 			},
-			queryTerminalBackgroundColor: async () => rgb(17, 17, 17),
-			queryTerminalColorScheme: async () => "dark",
+			queryTerminalColors: async () => ({ background: rgb(17, 17, 17) }),
 		} as never as TUI;
 
 		const profile = await measureTerminalColors(tui, 20);
@@ -105,8 +103,7 @@ describe("terminal color detection", () => {
 					listener = undefined;
 				};
 			},
-			queryTerminalBackgroundColor: async () => undefined,
-			queryTerminalColorScheme: async () => undefined,
+			queryTerminalColors: async () => ({}),
 		} as never as TUI;
 
 		await measureTerminalColors(tui, 10);

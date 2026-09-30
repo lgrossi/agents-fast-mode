@@ -24,18 +24,16 @@
     "video": "https://pi.luan.sh/media/previews/pi-fileops-fcf6128b5f4c.mp4"
   },
   "dependencies": {
-    "@luan.sh/pi-code-mode": "workspace:*",
     "@luan.sh/pi-libtui": "workspace:*"
   },
   "bundledDependencies": [
-    "@luan.sh/pi-code-mode",
     "@luan.sh/pi-libtui"
   ],
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": ">=0.87.1"
+    "@earendil-works/pi-coding-agent": ">=0.99.1"
   },
   "devDependencies": {
-    "@earendil-works/pi-coding-agent": "0.87.1",
+    "@earendil-works/pi-coding-agent": "0.99.1",
     "@types/bun": "^1.3.0",
     "typescript": "^6.0.3"
   },

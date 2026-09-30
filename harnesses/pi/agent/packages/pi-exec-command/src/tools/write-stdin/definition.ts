@@ -3,7 +3,7 @@ import { Type } from "typebox";
 import { DEFAULT_EXEC_COMMAND_SETTINGS, type ExecCommandSettings } from "../../contributions/xsettings.ts";
 import { renderExecResult, renderWriteStdinCall } from "../../ui/presentation.ts";
 import { type ExecToolPresentationDetails, normalizeWriteStdinArguments } from "../presentation.ts";
-import { createExecToolResult } from "../result.ts";
+import { createExecToolResult, EXEC_OUTPUT_SCHEMA } from "../result.ts";
 import type { ExecRuntime } from "../runtime.ts";
 import { executeWriteStdin } from "./execute.ts";
 
@@ -36,6 +36,7 @@ export function createWriteStdinTool(
 ): ToolDefinition<typeof WRITE_STDIN_PARAMETERS, ExecToolPresentationDetails> {
 	return {
 		name: "write_stdin",
+		outputSchema: EXEC_OUTPUT_SCHEMA,
 		label: "write_stdin",
 		description: "Writes characters to an existing unified exec session and returns recent output.",
 		parameters: writeStdinParameters(settings),

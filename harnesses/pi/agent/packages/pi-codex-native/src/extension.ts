@@ -1,5 +1,4 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { registerCodeModeFunctionTool } from "@luan.sh/pi-code-mode/sdk";
 import registerNativeCompaction from "./compaction/index.ts";
 import { applyCodexCompatibility } from "./compatibility.ts";
 import registerContextWindow from "./context-window.ts";
@@ -67,7 +66,6 @@ export function registerCodexNativeLifecycle(
 export default function codexNativeExtension(pi: ExtensionAPI): void {
 	const unregisterPromptPayloadAdapter = registerCodexPromptPayloadAdapter();
 	const webRunTool = createWebRunTool();
-	const unregisterCodeModeWebRun = registerCodeModeFunctionTool(webRunTool);
 	const runtime = registerOpenAICodexProvider(pi);
 	let applyingModelCompatibility = false;
 	const applyModelCompatibility = async (_event: unknown, ctx: ExtensionContext): Promise<void> => {
@@ -101,7 +99,6 @@ export default function codexNativeExtension(pi: ExtensionAPI): void {
 	pi.on("session_shutdown", (event) => {
 		if (event.reason !== "reload" && event.reason !== "quit") return;
 		unregisterPromptPayloadAdapter();
-		unregisterCodeModeWebRun();
 		fastMode.dispose();
 		contextWindow.dispose();
 		unregisterXSettings();

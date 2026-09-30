@@ -3,7 +3,6 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI, Theme } from "@earendil-works/pi-coding-agent";
-import { getCodeModeToolAdapterRegistry } from "@luan.sh/pi-code-mode/sdk";
 import { configureTuiAppearance, DEFAULT_TUI_APPEARANCE, icon } from "@luan.sh/pi-libtui";
 import { parseUnifiedDiff } from "@luan.sh/pi-libtui/diff";
 import { resolveApplyPatchBinary } from "../src/binary.ts";
@@ -22,7 +21,6 @@ const releaseBinary = join(
 	process.platform === "win32" ? "apply-patch.exe" : "apply-patch",
 );
 const originalOverride = process.env["PI_APPLY_PATCH_BIN"];
-const codeModeAdaptersKey = Symbol.for("pi-code-mode/nested-tool-adapters/v2");
 const presentationTheme = {
 	name: "patch-view",
 	bold: (text: string) => text,
@@ -42,7 +40,6 @@ afterAll(() => {
 
 afterEach(() => {
 	configureTuiAppearance(DEFAULT_TUI_APPEARANCE);
-	Reflect.deleteProperty(globalThis, codeModeAdaptersKey);
 });
 
 test("the binary override resolves a real executable", async () => {
@@ -622,137 +619,5 @@ describe("Pi registration", () => {
 			type: "grammar",
 			variants: { openai_lark: expect.stringContaining('begin_patch: "*** Begin Patch" LF') },
 		});
-	});
-
-	test("the Code Mode adapter applies raw patch text with the registered tool", async () => {
-		const cwd = await mkdtemp(join(tmpdir(), "pi-apply-patch-code-mode-"));
-		const adapters = getCodeModeToolAdapterRegistry().adapters;
-		const previousAdapter = adapters.get("apply_patch");
-		adapters.delete("apply_patch");
-		try {
-			let registeredTool: unknown;
-			const handlers = new Map<string, (event: { reason?: string }) => unknown>();
-			const pi = {
-				registerTool(tool: unknown) {
-					registeredTool = tool;
-				},
-				on(event: string, handler: (event: { reason?: string }) => unknown) {
-					handlers.set(event, handler);
-				},
-			} as unknown as ExtensionAPI;
-
-			applyPatchExtension(pi);
-			const adapter = adapters.get("apply_patch");
-			expect(adapter?.kind).toBe("freeform");
-			expect(adapter).not.toHaveProperty("exposure");
-			expect(registeredTool).toBeDefined();
-
-			const result = await adapter?.invoke(
-				`*** Begin Patch
-*** Add File: code-mode.txt
-+code mode
-*** End Patch`,
-				{
-					cwd,
-					toolCallId: "code-mode-call",
-					extensionContext: { cwd } as never,
-				},
-				new AbortController().signal,
-			);
-
-			expect(result).toMatchObject({
-				details: {
-					version: 1,
-					tool: "apply_patch",
-					status: "success",
-					input: { operations: [{ operation: "add", path: "code-mode.txt" }] },
-					affectedPaths: ["code-mode.txt"],
-					files: [{ operation: "add", path: "code-mode.txt", status: "applied" }],
-					counts: { planned: 1, applied: 1, failed: 0, created: 1 },
-					progress: { completed: 1, total: 1 },
-				},
-			});
-			expect(JSON.parse(JSON.stringify((result as { details: unknown }).details))).toEqual(
-				(result as { details: unknown }).details,
-			);
-			expect(result && adapter?.resultValue?.(result)).toMatchObject({
-				changedFiles: ["code-mode.txt"],
-				createdFiles: ["code-mode.txt"],
-			});
-			if (!result) throw new Error("Code Mode apply_patch returned no result");
-			const presentation = adapter?.renderTrace?.(
-				{
-					id: "apply-patch-presentation",
-					input: `*** Begin Patch
-*** Add File: code-mode.txt
-+code mode
-*** End Patch`,
-					status: "done",
-					durationMs: 1,
-					result,
-				},
-				{ theme: presentationTheme, requestRender() {}, lastComponent: undefined, cwd, state: {} },
-			);
-			const rendered = Bun.stripANSI(presentation?.render(80).join("\n") ?? "");
-			expect(rendered).toContain("Edited · code-mode.txt");
-			expect(rendered).not.toContain("Changes");
-			expect(rendered).toContain("code-mode.txt");
-			expect(rendered).toContain("code mode");
-			expect(rendered).not.toContain("Input");
-			expect(rendered).not.toContain("Changed files:");
-			expect(await readFile(join(cwd, "code-mode.txt"), "utf8")).toBe("code mode\n");
-
-			const partial = adapter!.invoke(
-				`*** Begin Patch
-*** Add File: code-mode-kept.txt
-+kept
-*** Update File: code-mode-missing.txt
-@@
--old
-+new
-*** End Patch`,
-				{
-					cwd,
-					toolCallId: "code-mode-partial",
-					extensionContext: { cwd } as never,
-				},
-				new AbortController().signal,
-			);
-			await expect(partial).rejects.toThrow("apply_patch partially failed");
-			expect(handlers.has("session_shutdown")).toBe(true);
-		} finally {
-			if (previousAdapter === undefined) adapters.delete("apply_patch");
-			else adapters.set("apply_patch", previousAdapter);
-			await rm(cwd, { recursive: true, force: true });
-		}
-	});
-
-	test("reload disposal does not remove a replacement Code Mode adapter", () => {
-		const adapters = getCodeModeToolAdapterRegistry().adapters;
-		const previousAdapter = adapters.get("apply_patch");
-		adapters.delete("apply_patch");
-		try {
-			const shutdownHandlers: Array<(event: { reason: string }) => unknown> = [];
-			const pi = {
-				registerTool() {},
-				on(event: string, handler: (event: { reason: string }) => unknown) {
-					if (event === "session_shutdown") shutdownHandlers.push(handler);
-				},
-			} as unknown as ExtensionAPI;
-
-			applyPatchExtension(pi);
-			const firstAdapter = adapters.get("apply_patch");
-			applyPatchExtension(pi);
-			const replacementAdapter = adapters.get("apply_patch");
-			expect(replacementAdapter).not.toBe(firstAdapter);
-
-			shutdownHandlers[0]?.({ reason: "reload" });
-			expect(adapters.get("apply_patch")).toBe(replacementAdapter);
-			shutdownHandlers[1]?.({ reason: "quit" });
-			expect(adapters.get("apply_patch")).toBeUndefined();
-		} finally {
-			if (previousAdapter === undefined) adapters.delete("apply_patch");
-			else adapters.set("apply_patch", previousAdapter);
-		}
 	});
 });

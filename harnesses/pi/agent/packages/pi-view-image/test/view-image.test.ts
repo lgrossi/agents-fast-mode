@@ -4,8 +4,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { CustomEditor, type Theme, type KeybindingsManager } from "@earendil-works/pi-coding-agent";
 import { ProcessTerminal, TuiAltScreen } from "@earendil-works/pi-tui";
-import { getCodeModeToolAdapterRegistry } from "@luan.sh/pi-code-mode/sdk";
-import { icon } from "@luan.sh/pi-libtui";
 import {
 	EDITOR_PROTOCOL,
 	type EditorFactory,
@@ -13,7 +11,6 @@ import {
 	type EditorRegistry,
 	type EditorRenderDecorator,
 } from "@luan.sh/pi-libtui/editor";
-import { codeModeImageResult, registerViewImageCodeModeAdapter } from "../src/code-mode-adapter.ts";
 import { ImageAttachmentStore, pastedImagePath } from "../src/core/attachments.ts";
 import { parseViewImageOutput } from "../src/native/view-image.ts";
 import { labelNativeImageAttachments } from "../src/native-attachments.ts";
@@ -350,70 +347,6 @@ describe("view_image", () => {
 			{ executionStarted: false, state: {}, invalidate() {}, lastComponent: undefined, isError: false },
 		);
 		expect(component.render(80)[0]!.replace(/\x1b\[[0-9;]*m/g, "")).toContain("Viewed image · 7ms");
-	});
-
-	test("returns the Code Mode image helper contract", () => {
-		const image: ViewImageContent = { type: "image", data: "AAAA", mimeType: "image/png", detail: "high" };
-		expect(
-			codeModeImageResult({
-				content: [image],
-				details: undefined,
-			}),
-		).toEqual({ image_url: "data:image/png;base64,AAAA", detail: "high" });
-	});
-
-	test("publishes the Codex-compatible Code Mode output schema", () => {
-		const dispose = registerViewImageCodeModeAdapter(createViewImageTool());
-		try {
-			expect(getCodeModeToolAdapterRegistry().adapters.get("view_image")?.outputSchema).toEqual({
-				type: "object",
-				properties: {
-					image_url: { type: "string", description: "Data URL for the loaded image." },
-					detail: {
-						type: "string",
-						enum: ["high", "original"],
-						description:
-							"Image detail hint returned by view_image. Returns `high` for default resized behavior or `original` when original resolution is preserved.",
-					},
-				},
-				required: ["image_url", "detail"],
-				additionalProperties: false,
-			});
-		} finally {
-			dispose();
-		}
-	});
-
-	test("uses the direct tool presentation when nested in Code Mode", () => {
-		const dispose = registerViewImageCodeModeAdapter(createViewImageTool());
-		try {
-			const presentation = getCodeModeToolAdapterRegistry()
-				.adapters.get("view_image")
-				?.renderTrace?.(
-					{
-						id: "image-call",
-						input: { path: "/tmp/image.png" },
-						status: "done",
-						result: {
-							content: [],
-							details: {
-								version: 1,
-								tool: "view_image",
-								status: "success",
-								input: { path: "/tmp/image.png", detail: "high" },
-								image: { path: "/tmp/image.png", mimeType: "image/png", width: 4, height: 3, bytes: 4 },
-								timing: { durationMs: 8 },
-							},
-						},
-					},
-					{ theme, requestRender() {}, cwd: "/tmp", state: {}, lastComponent: undefined },
-				);
-			const rendered = Bun.stripANSI(presentation?.render(80).join("\n") ?? "");
-			expect(rendered).toContain(`${icon("view-image")} Viewed image · 8ms`);
-			expect(rendered).not.toContain("Used view_image");
-		} finally {
-			dispose();
-		}
 	});
 
 	test("rejects malformed native output", () => {

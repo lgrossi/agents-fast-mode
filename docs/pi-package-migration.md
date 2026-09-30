@@ -6,7 +6,6 @@ package, not both. Versions are independent per package.
 
 | Former name | Canonical name | Bare alias |
 | --- | --- | --- |
-| `@cfcluan/pi-code-mode` | `@luan.sh/pi-code-mode` | `pi-code-mode` |
 | `pi-codex-native` | `@luan.sh/pi-codex-native` | `pi-codex-native` |
 | `pi-collapse-transcript` | `@luan.sh/pi-collapse-transcript` | `pi-collapse-transcript` |
 | `pi-copy-mode` | `@luan.sh/pi-copy-mode` | `pi-copy-mode` |
@@ -22,7 +21,6 @@ package, not both. Versions are independent per package.
 | `@cfcluan/pi-skills` | `@luan.sh/pi-skills` | — |
 | `@cfcluan/pi-subagents` | `@luan.sh/pi-subagents` | — |
 | `pi-thinking-binding` | `@luan.sh/pi-thinking-binding` | `pi-thinking-binding` |
-| `@cfcluan/pi-tool-search` | `@luan.sh/pi-tool-search` | — |
 | `@cfcluan/pi-tuicr` | `@luan.sh/pi-tuicr` | — |
 | `pi-view-image` | `@luan.sh/pi-view-image` | `pi-view-image` |
 | `pi-xsettings` | `@luan.sh/pi-xsettings` | `pi-xsettings` |

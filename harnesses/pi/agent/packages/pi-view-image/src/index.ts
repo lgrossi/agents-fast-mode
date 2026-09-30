@@ -1,4 +1,3 @@
-export { codeModeImageResult, registerViewImageCodeModeAdapter } from "./code-mode-adapter.ts";
 export { resolveViewImageBinary } from "./native/binary.ts";
 export { parseViewImageOutput, runViewImageBinary } from "./native/view-image.ts";
 export { labelNativeImageAttachments } from "./native-attachments.ts";

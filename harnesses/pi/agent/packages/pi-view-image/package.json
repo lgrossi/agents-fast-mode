@@ -24,21 +24,19 @@
     "video": "https://pi.luan.sh/media/previews/pi-view-image-62df21208d2a.mp4"
   },
   "dependencies": {
-    "@luan.sh/pi-code-mode": "workspace:*",
     "@luan.sh/pi-libtui": "workspace:*"
   },
   "bundledDependencies": [
-    "@luan.sh/pi-code-mode",
     "@luan.sh/pi-libtui"
   ],
   "peerDependencies": {
     "@earendil-works/pi-tui": ">=0.87.1",
-    "@earendil-works/pi-coding-agent": ">=0.87.1",
+    "@earendil-works/pi-coding-agent": ">=0.99.1",
     "typebox": "*"
   },
   "devDependencies": {
-    "@earendil-works/pi-tui": "0.87.1",
-    "@earendil-works/pi-coding-agent": "0.87.1",
+    "@earendil-works/pi-tui": "0.99.1",
+    "@earendil-works/pi-coding-agent": "0.99.1",
     "@types/bun": "^1.3.0",
     "typescript": "^6.0.3"
   },

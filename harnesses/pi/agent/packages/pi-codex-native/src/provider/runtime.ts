@@ -9,7 +9,6 @@ import type {
 	SimpleStreamOptions,
 } from "@earendil-works/pi-ai";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { listCodeModeToolNames } from "@luan.sh/pi-code-mode/sdk";
 import { createGrammarToolInputProperties } from "../constrained-sampling.ts";
 import { buildRequestBody } from "./request-body.ts";
 import { normalizeResponsesToolHistory } from "../responses/tool-history.ts";
@@ -315,7 +314,6 @@ export class CodexProviderRuntime {
 				);
 				let body = buildRequestBody(requestModel, requestContext, {
 					...requestOptions,
-					codeModeToolNames: listCodeModeToolNames(),
 					grammarToolInputProperties,
 				});
 				const nextBody = await requestOptions?.onPayload?.(body, requestModel);

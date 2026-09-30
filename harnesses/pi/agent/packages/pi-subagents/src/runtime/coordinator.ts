@@ -357,7 +357,7 @@ function messageCost(message: AgentMessage): number {
 
 function snapshotOf(agent: LiveAgent): SubagentSnapshot {
 	const activeTool = agent.activeTools.at(-1);
-	const visibleTool = activeTool === "exec" && agent.latestInnerTool ? agent.latestInnerTool : activeTool;
+	const visibleTool = activeTool === "codemode" && agent.latestInnerTool ? agent.latestInnerTool : activeTool;
 	return Object.freeze({
 		id: agent.id,
 		rootSessionId: agent.rootSessionId,
@@ -918,7 +918,7 @@ export class SubagentCoordinator {
 		} else {
 			const index = agent.activeTools.lastIndexOf(activity.toolName);
 			if (index >= 0) agent.activeTools.splice(index, 1);
-			if (activity.toolName === "exec" && !activity.nested) agent.latestInnerTool = undefined;
+			if (activity.toolName === "codemode" && !activity.nested) agent.latestInnerTool = undefined;
 			agent.toolUses++;
 		}
 		this.emit({ type: "updated", agent: snapshotOf(agent) });

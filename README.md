@@ -36,7 +36,6 @@ just unlink
 Each extension can be loaded from this checkout or installed on its own. Its README explains its settings and public API.
 
 - [`@luan.sh/pi-fileops`](harnesses/pi/agent/packages/pi-fileops/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-fileops)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-fileops) — A Codex-compatible `apply_patch` tool backed by the Rust patch parser.
-- [`@luan.sh/pi-code-mode`](harnesses/pi/agent/packages/pi-code-mode/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-code-mode)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-code-mode) — Restricted JavaScript composition through `exec`, with selected tools available under `tools.*`.
 - [`@luan.sh/pi-codex-native`](harnesses/pi/agent/packages/pi-codex-native/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-codex-native)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-codex-native) — The Codex Responses provider, models, native web tool, compaction, and provider controls.
 - [`@luan.sh/pi-copy-mode`](harnesses/pi/agent/packages/pi-copy-mode/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-copy-mode)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-copy-mode) — Vim-style transcript selection, copying, comments, and reactions.
 - [`@luan.sh/pi-collapse-transcript`](harnesses/pi/agent/packages/pi-collapse-transcript/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-collapse-transcript)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-collapse-transcript) — Collapsible tools and thinking sections with a live activity summary.
@@ -44,7 +43,6 @@ Each extension can be loaded from this checkout or installed on its own. Its REA
 - [`@luan.sh/pi-exec-command`](harnesses/pi/agent/packages/pi-exec-command/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-exec-command)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-exec-command) — Bounded shell commands and persistent PTY sessions through `exec_command` and `write_stdin`.
 - [`@luan.sh/pi-libtui`](harnesses/pi/agent/packages/pi-libtui/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-libtui)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-libtui) — Shared terminal components, semantic colors, mouse handling, selection bridges, and tool presentation.
 - [`@luan.sh/pi-skills`](harnesses/pi/agent/packages/pi-skills/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-skills)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-skills) — Exact-name skill loading through the `skill` tool.
-- [`@luan.sh/pi-tool-search`](harnesses/pi/agent/packages/pi-tool-search/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-tool-search)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-tool-search) — Search and activation for a configured set of deferred tools.
 - [`@luan.sh/pi-view-image`](harnesses/pi/agent/packages/pi-view-image/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-view-image)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-view-image) — A Codex-compatible native image attachment tool.
 - [`@luan.sh/pi-xsettings`](harnesses/pi/agent/packages/pi-xsettings/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-xsettings)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-xsettings) — Typed settings registration, TOML persistence, keybindings, and the `/xsettings` editor.
 - [`@luan.sh/pi-custom-editor`](harnesses/pi/agent/packages/pi-custom-editor/README.md)&nbsp;[<img src="https://pi.luan.sh/icons/pi.svg" width="14" alt="Pi gallery">](https://pi.dev/packages/@luan.sh/pi-custom-editor)&nbsp;[<img src="https://pi.luan.sh/icons/npm.svg" width="14" alt="npm">](https://www.npmjs.com/package/@luan.sh/pi-custom-editor) — Custom editor layouts, file and skill tokens, and a semantic status footer.
@@ -70,9 +68,6 @@ TypeScript registers and composes Pi features. Rust owns the process, patch, pro
 | Crate | Responsibility |
 | --- | --- |
 | `apply-patch` | Parses and applies structured patches. |
-| `code-mode-host` | Runs the Code Mode host process. |
-| `code-mode-protocol` | Defines the host wire protocol. |
-| `code-mode-runtime` | Executes restricted JavaScript and coordinates nested calls. |
 | `terminal-bridge` | Runs bounded pipes and persistent PTY sessions. |
 | `web-run` | Executes the native Codex web request contract. |
 | `view-image` | Reads local images for Codex-compatible attachment previews. |
@@ -90,13 +85,14 @@ Use `Alt+P` for Pi's model picker and `Alt+,` / `Alt+.` to decrease or increase
 reasoning effort. Subagents inherit the parent's model and effort unless a
 spawn supplies direct overrides.
 
-Tool visibility has three separate controls:
-
-- `pi.defaultTools` selects direct tools.
-- `pi-code-mode.tools` moves selected active tools under `exec`.
-- `pi-tool-search.tools` defers selected tools within the scope where `tool_search` runs.
-
-Code Mode alone changes tool hierarchy. Tool Search only controls deferred membership; a disabled tool is not silently made deferred.
+The managed harness requires Pi 0.99.1 or later and uses its built-in `codemode`,
+`tool_search`, and MCP support. `pi.defaultTools` selects startup tools.
+Scripts run in a fresh QuickJS sandbox; `store`/`load` persist JSON values.
+Use `exec_command` and `write_stdin` for persistent processes. The custom
+codemode, tool-search, and notebook implementations have been removed.
+SDK subagents opt into the same built-ins. Image tools and collaboration stay direct.
+The Codex provider uses Pi's model catalog, including GPT-6.1 Sol. GPT-6 Luna
+is the default; Astra and both Sol generations remain available.
 
 Run `/reload` after changing package loading, keybindings, or a setting documented as reload-only. Appearance and other live settings apply immediately when their package says they do.
 
@@ -155,7 +151,7 @@ git push origin main @luan.sh/pi-codex-native@0.3.8
 
 `.github/workflows/publish.yml` publishes only the named package, checks that
 its version matches the tag, and skips versions already on npm. Other packages
-may have the same version without being released. Tags include the scope, for example `@luan.sh/pi-code-mode@0.3.8`.
+may have the same version without being released. Tags include the scope, for example `@luan.sh/pi-exec-command@0.3.9`.
 Packages with `publishAliases` also publish the same release under the listed
 bare names. Existing versions are skipped independently for each name.
 
@@ -172,7 +168,9 @@ Keep released commits reachable and never move or delete release tags.
 
 **A native tool says its binary is missing.** Run `cargo build --locked --release`, or `just setup` to rebuild and check everything.
 
-**A tool is not visible.** Check all three tool lists above. Under strict selection, `exec`, `tool_search`, and direct tools exist only when the active scope includes them.
+**A tool is not visible.** Check `defaultTools`, the tool's exposure, and MCP server
+configuration. Enable `codemode` for script calls and `tool_search` to discover
+deferred tools. Strict `--tools` selection replaces the startup selection.
 
 **A fullscreen interaction is absent.** Copy mode, mouse overlays, and some selection UI require Pi's fullscreen TUI. Check `pi.tuiMode` in `xsettings.toml`.
 

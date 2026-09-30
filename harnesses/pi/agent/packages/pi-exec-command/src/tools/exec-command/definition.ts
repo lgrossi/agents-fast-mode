@@ -4,7 +4,7 @@ import { Type } from "typebox";
 import { DEFAULT_EXEC_COMMAND_SETTINGS, type ExecCommandSettings } from "../../contributions/xsettings.ts";
 import { renderExecCommandCall, renderExecResult } from "../../ui/presentation.ts";
 import type { ExecToolPresentationDetails } from "../presentation.ts";
-import { createExecToolResult } from "../result.ts";
+import { createExecToolResult, EXEC_OUTPUT_SCHEMA } from "../result.ts";
 import type { ExecRuntime } from "../runtime.ts";
 import { type ExecCommandPreparationRuntime, executeExecCommand, prepareExecCommandExecution } from "./execute.ts";
 
@@ -59,6 +59,7 @@ export function createExecCommandTool(
 	const animation = execCommandAnimation(settings);
 	return {
 		name: "exec_command",
+		outputSchema: EXEC_OUTPUT_SCHEMA,
 		label: "exec_command",
 		description: "Runs a command in a PTY, returning output or a session ID for ongoing interaction.",
 		parameters: execCommandParameters(settings),

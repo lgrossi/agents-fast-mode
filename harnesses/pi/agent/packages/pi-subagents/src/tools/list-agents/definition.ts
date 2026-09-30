@@ -22,6 +22,7 @@ export function createListAgentsTool(
 ): ToolDefinition<typeof PARAMETERS, ListAgentsDetails> {
 	return {
 		name: AGENT_TOOLS.listAgents,
+		exposure: "model-only",
 		label: "List Agents",
 		description: "List agents in the current root task tree, optionally filtered by task-path prefix.",
 		parameters: PARAMETERS,

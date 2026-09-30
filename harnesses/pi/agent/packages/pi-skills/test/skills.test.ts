@@ -2,14 +2,12 @@ import { expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { convertToLlm, type ToolDefinition } from "@earendil-works/pi-coding-agent";
-import { getCodeModeToolAdapterRegistry } from "@luan.sh/pi-code-mode/sdk";
+import { convertToLlm } from "@earendil-works/pi-coding-agent";
 import { icon } from "@luan.sh/pi-libtui";
 import {
 	getDeveloperMessageContributionRegistry,
 	renderDeveloperMessages,
 } from "../../pi-developer-messages/src/developer-messages.ts";
-import skillsExtension from "../src/extension.ts";
 import { registerSkillsPromptContribution, renderSkillsCatalog } from "../src/prompt.ts";
 import { createSkillTool } from "../src/tools/skill/definition.ts";
 import { addSkillDisplayNames, discoverSkills, parseSkillDisplayName } from "../src/skills.ts";
@@ -358,7 +356,7 @@ test("adds the skill catalogue when skill is direct or available through exec", 
 		expect(
 			renderDeveloperMessages({
 				provider: "openai-codex",
-				activeTools: ["exec"],
+				activeTools: ["codemode"],
 				sessionId: "session-1",
 				systemPromptOptions: {
 					cwd: "/repo",
@@ -369,42 +367,6 @@ test("adds the skill catalogue when skill is direct or available through exec", 
 	} finally {
 		dispose();
 		getDeveloperMessageContributionRegistry().clear();
-	}
-});
-
-test("registers the skill execution bridge with Code Mode", () => {
-	const adapters = getCodeModeToolAdapterRegistry().adapters;
-	const previous = adapters.get("skill");
-	adapters.delete("skill");
-	try {
-		const tools: ToolDefinition[] = [];
-		const handlers = new Map<string, (event: { reason: string }) => void>();
-		const messageRenderers = new Map<string, () => { render(width: number): string[] }>();
-		skillsExtension({
-			registerTool(tool: ToolDefinition) {
-				tools.push(tool);
-			},
-			on(event: string, handler: (event: { reason: string }) => void) {
-				handlers.set(event, handler);
-			},
-			registerMessageRenderer(type: string, renderer: () => { render(width: number): string[] }) {
-				messageRenderers.set(type, renderer);
-			},
-			registerMarkdownTransformer() {},
-			getCommands: () => [],
-			sendMessage: async () => {},
-		} as never);
-		expect(tools).toHaveLength(1);
-		expect(messageRenderers.get("pi-skills/loaded")?.().render(80)).toEqual([]);
-		expect(adapters.get("skill")).toMatchObject({ name: "skill", kind: "function" });
-		expect(adapters.get("skill")).not.toHaveProperty("exposure");
-		handlers.get("session_shutdown")?.({ reason: "new" });
-		expect(adapters.get("skill")).toBeDefined();
-		handlers.get("session_shutdown")?.({ reason: "reload" });
-		expect(adapters.get("skill")).toBeUndefined();
-	} finally {
-		if (previous === undefined) adapters.delete("skill");
-		else adapters.set("skill", previous);
 	}
 });
 

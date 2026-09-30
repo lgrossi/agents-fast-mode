@@ -34,6 +34,9 @@ Optional companions:
 
 ## `exec_command`
 
+Pi 0.99 codemode scripts receive structured results from `exec_command` and
+`write_stdin`, including `output`, `exit_code`, and `session_id`.
+
 `cmd` is required. Optional arguments:
 
 | Argument | Behavior |
@@ -184,7 +187,6 @@ side-panel host is present.
 | Transcript rendering | `src/ui/presentation.ts`, `src/ui/command-transcript.ts`, `src/ui/shell-command-action.ts` |
 | Process Hub, widget, store | `src/ui/process-hub*.ts`, `src/ui/process-store.ts`, `src/ui/process-widget.ts` |
 | `processes.open` action, session hierarchy, settings | `src/contributions/` |
-| Code Mode adapters | `src/code-mode-adapters.ts` |
 | Public exports (presentation contract only) | `src/index.ts` |
 
 ## Develop

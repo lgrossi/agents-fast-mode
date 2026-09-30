@@ -66,7 +66,6 @@ export function buildRequestBody<TApi extends Api>(
 			? new Set([...CODEX_TOOL_CALL_PROVIDERS, model.provider])
 			: CODEX_TOOL_CALL_PROVIDERS;
 	const toolPlacement = splitDeferredTools(context, deferredToolsMode !== undefined);
-	const codeModeToolNames = [...new Set(options?.codeModeToolNames ?? [])];
 	const messages = convertResponsesMessages(model, context, allowedToolCallProviders, {
 		includeSystemPrompt: false,
 		grammarToolInputProperties,
@@ -89,8 +88,8 @@ export function buildRequestBody<TApi extends Api>(
 		include: ["reasoning.encrypted_content"],
 		prompt_cache_key: clampOpenAIPromptCacheKey(options?.sessionId),
 		tool_choice: options?.toolChoice ?? "auto",
-		parallel_tool_calls: codeModeToolNames.length === 0,
-		...buildClientMetadata(options?.sessionId, codeModeToolNames),
+		parallel_tool_calls: true,
+		...buildClientMetadata(options?.sessionId),
 	};
 
 	// The Codex ChatGPT-backed endpoint rejects output-token cap fields with
@@ -134,14 +133,10 @@ export function buildRequestBody<TApi extends Api>(
 	return body;
 }
 
-function buildClientMetadata(
-	sessionId: string | undefined,
-	codeModeToolNames: readonly string[],
-): Pick<ResponsesBody, "client_metadata"> {
-	if (!sessionId && codeModeToolNames.length === 0) return {};
+function buildClientMetadata(sessionId: string | undefined): Pick<ResponsesBody, "client_metadata"> {
+	if (!sessionId) return {};
 	const turnMetadata = {
 		...(sessionId ? { session_id: sessionId, thread_id: sessionId } : {}),
-		...(codeModeToolNames.length > 0 ? { code_mode_tool_names: codeModeToolNames } : {}),
 	};
 	return {
 		client_metadata: {

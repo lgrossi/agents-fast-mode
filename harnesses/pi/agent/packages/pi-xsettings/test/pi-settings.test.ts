@@ -41,6 +41,17 @@ function fixture(toml = "", json = "{}") {
 }
 
 describe("Pi settings reconciliation", () => {
+	test("exports native codemode settings without dropping bootstrap configuration", async () => {
+		const f = fixture(
+			'[tools]\npi.codemode.mode = "only"\npi.codemode.inlineBudget = 1000\n',
+			'{"packages":["pi-xsettings"],"codemode":{"other":true}}',
+		);
+		await f.sync.reconcile();
+		expect(JSON.parse(readFileSync(f.jsonPath, "utf8"))).toEqual({
+			packages: ["pi-xsettings"],
+			codemode: { mode: "only", inlineBudget: 1000, other: true },
+		});
+	});
 	test("reads owner-prefixed Pi values from category tables", () => {
 		expect(configuredPiValues({ appearance: { pi: { theme: "dark", terminal: { showImages: false } } } })).toEqual({
 			theme: "dark",

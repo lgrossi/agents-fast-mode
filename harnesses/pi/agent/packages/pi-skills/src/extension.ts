@@ -1,6 +1,5 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { ComponentStack, tuiTheme } from "@luan.sh/pi-libtui";
-import { registerSkillCodeModeAdapter } from "./code-mode-adapter.ts";
 import { getSkillsSettings, registerSkillsXSettings } from "./contributions/xsettings.ts";
 import { registerSkillEditorHighlights } from "./contributions/editor-highlights.ts";
 import { addSkillDisplayNames, discoverSkills, type SkillReference } from "./skills.ts";
@@ -21,7 +20,7 @@ export default function skillsExtension(pi: ExtensionAPI): void {
 	pi.registerTool(tool);
 	// Historical sessions may contain displayable copies; the tool row owns their presentation.
 	pi.registerMessageRenderer(LOADED_SKILL_CONTEXT_MESSAGE_TYPE, () => new ComponentStack());
-	const disposeCodeModeAdapter = registerSkillCodeModeAdapter(tool);
+
 	let disposeEditorHighlights = (): void => {};
 	let transcriptContext: ExtensionContext | undefined;
 	let skills: ReadonlyMap<string, SkillReference> = new Map();
@@ -51,7 +50,6 @@ export default function skillsExtension(pi: ExtensionAPI): void {
 		transcriptContext = undefined;
 		if (event.reason === "reload" || event.reason === "quit") {
 			disposePrompt();
-			disposeCodeModeAdapter();
 			disposeXSettings();
 		}
 	});

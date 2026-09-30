@@ -18,11 +18,6 @@ editor, and shows loaded skills as compact rows in the transcript.
 pi install npm:@luan.sh/pi-skills
 ```
 
-Code Mode is bundled. It requires a Rust toolchain (https://rustup.rs). The
-`code-mode-host` binary builds itself on first use under Pi's agent directory
-(`native/code-mode-host/<version>/`). Set `PI_CODE_MODE_HOST_BINARY` to use a
-prebuilt binary.
-
 Optional companions:
 
 - `pi install npm:@luan.sh/pi-xsettings` adds the `/xsettings` editor for the
@@ -101,19 +96,18 @@ The line is omitted when `SKILL.md` is alone or when `agents/openai.yaml` is
 the only companion. Use the directory to open scripts, assets, or references
 yourself.
 
-## Code Mode
+## Codemode
 
-The `skill` tool registers a Code Mode adapter, so when Code Mode lifts it, the
-model calls `tools.skill({ name })` inside `exec` instead of calling `skill`
-directly. Code Mode decides which of the two is active; this package only
-supplies the adapter.
+Pi 0.99's built-in codemode calls the registered `skill` tool with
+`tools.skill({ name })`. Both direct and nested calls deliver the loaded
+instructions through the same contextual message.
 
 ## Prompt catalogue
 
 When skills exist that Pi allows the model to invoke, the package contributes
 a `<skills_instructions>` block (priority 50) listing each skill's name and
 description, plus short rules: use the smallest set of skills, call
-`tools.skill` with the exact name inside `exec` before acting, load only the
+`tools.skill` with the exact name inside `codemode` before acting, load only the
 supporting files the task needs. Skill filesystem paths are never included.
 Skills flagged `disableModelInvocation` are omitted.
 
@@ -124,7 +118,7 @@ installed; otherwise the default applies.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
-| `catalogVisibility` | `when-active` | `when-active`: include the catalogue when `skill` or `exec` is an active tool. `always`: include it in every prompt. `off`: never include it. |
+| `catalogVisibility` | `when-active` | `when-active`: include the catalogue when `skill` or `codemode` is an active tool. `always`: include it in every prompt. `off`: never include it. |
 
 ## Transcript rendering
 
@@ -163,7 +157,6 @@ This package registers no keyboard actions.
 | Transcript row rendering | `src/tools/skill/presentation.ts` |
 | Steering message wrapper | `src/loaded-skill-context.ts` |
 | Developer prompt catalogue | `src/prompt.ts` |
-| Code Mode adapter | `src/code-mode-adapter.ts` |
 | Settings declaration | `src/contributions/xsettings.ts` |
 | Optional editor pills | `src/contributions/editor-highlights.ts` |
 | `$skill` autocomplete | `src/ui/autocomplete.ts` |
@@ -175,7 +168,7 @@ This package registers no keyboard actions.
 - **Unknown skill:** the name must match a `skill:<name>` command or a
   discovered `SKILL.md` exactly, including case and punctuation.
 - **No catalogue in the prompt:** check `catalogVisibility`, make sure `skill`
-  or `exec` is active when it is `when-active`, and install
+  or `codemode` is active when it is `when-active`, and install
   `@luan.sh/pi-developer-messages`.
 - **Loaded text not visible:** expand the skill row; the text is already in
   model context.

@@ -4,7 +4,7 @@
 Codex-style patch (`*** Begin Patch` ... `*** End Patch`) and a native Rust
 binary applies it: parsing, context matching, filesystem writes, and
 partial-failure tracking. The same operation is available as a direct Pi tool
-and, when Code Mode is installed, as `tools.apply_patch(...)` inside `exec`.
+and as `tools.apply_patch({ input })` inside Pi's built-in `codemode`.
 
 ## Preview
 
@@ -22,27 +22,13 @@ Requires a Rust toolchain (<https://rustup.rs>). The `apply-patch` binary builds
 itself on first use under Pi's agent directory (`native/apply-patch/<version>/`).
 Set `PI_APPLY_PATCH_BIN` to use a prebuilt binary.
 
-Optional companion: `pi install npm:@luan.sh/pi-code-mode` adds the `exec`
-tool and can move `apply_patch` under it; without it `apply_patch` is always a
-direct tool.
+## Direct and codemode calls
 
-## Direct and Code Mode calls
-
-The extension registers `apply_patch` as an ordinary Pi tool and also registers
-a Code Mode execution adapter. Code Mode alone decides which one the model
-sees:
-
-- Without Code Mode, or when `apply_patch` is not selected in Code Mode's
-  `pi-code-mode.tools` setting, the model calls the direct tool with
-  `{ "input": "...patch text..." }`.
-- When it is selected there and `exec` is active, it disappears from the direct
-  tool list and becomes `tools.apply_patch("...patch text...")` inside `exec`.
-  The adapter accepts only a raw string; any other input is rejected.
-
-The adapter forwards execution to the same tool implementation and reuses this
-package's diff presentation for the nested trace. It does not read Code Mode
-settings or change the tool hierarchy. A partial failure inside `exec` is
-reported as a thrown error to the script after the result is published.
+Pi 0.99's built-in codemode calls the registered tool through
+`tools.apply_patch({ input: "...patch text..." })`. Direct model calls use
+native freeform grammar input. Both paths share validation, file mutation
+queues, execution, and policy hooks. Partial failures preserve successful
+edits and mark the result as an error.
 
 ## Patch format
 
@@ -131,7 +117,7 @@ add `result` (the native result); `partial_failure` adds
 
 | Responsibility | File |
 | --- | --- |
-| Extension entry: registers tool, result hook, and Code Mode adapter | `src/extension.ts` |
+| Extension entry: registers tool and result hook | `src/extension.ts` |
 | Tool definition, argument normalization, mutation queues | `src/tools/apply-patch/definition.ts` |
 | Result shaping and details types | `src/tools/apply-patch/result.ts` |
 | Transcript rendering (input preview, native diff) | `src/tools/apply-patch/presentation.ts` |
@@ -139,7 +125,6 @@ add `result` (the native result); `partial_failure` adds
 | Binary lookup and first-use build | `src/binary.ts` |
 | TypeScript patch parsing for previews and path resolution | `src/patch.ts` |
 | Lark grammar for freeform providers | `src/grammar.ts` |
-| Code Mode adapter | `src/code-mode-adapter.ts` |
 | Shared types and `ExecutePatchError` | `src/types.ts` |
 | Public exports | `src/index.ts` |
 
@@ -147,12 +132,8 @@ add `result` (the native result); `partial_failure` adds
 
 - **Binary fails to build:** make sure `cargo` is installed and on `PATH`, or
   set `PI_APPLY_PATCH_BIN` to an executable file.
-- **The tool stays direct:** install `@luan.sh/pi-code-mode`, select
-  `apply_patch` in its `tools` setting, and restart the session. Only Code
-  Mode owns placement.
-- **The tool is missing entirely:** check Pi's active tool selection. A strict
-  `--tools` list must include `apply_patch` or `exec`, depending on which path
-  you want to use.
+- **The tool is missing entirely:** include `apply_patch` in Pi's active tool
+  selection. Built-in codemode can call active direct tools.
 - **A patch partially failed:** preserve the successful edits, read each
   failed target again, and retry only the failed actions.
 - **A patch is rejected:** check the begin/end markers, action headers, exact

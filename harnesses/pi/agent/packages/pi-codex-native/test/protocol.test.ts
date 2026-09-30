@@ -74,7 +74,7 @@ test("request conversion emits grammar-constrained tools as native freeform tool
 	]);
 });
 
-test("request conversion identifies the Code Mode hierarchy to Codex", () => {
+test("request conversion preserves Codex session metadata", () => {
 	const body = buildRequestBody(
 		model,
 		{
@@ -84,17 +84,15 @@ test("request conversion identifies the Code Mode hierarchy to Codex", () => {
 		} as never,
 		{
 			sessionId: "session-1",
-			codeModeToolNames: ["exec_command", "apply_patch", "exec_command"],
 		},
 	);
-	expect(body.parallel_tool_calls).toBe(false);
+	expect(body.parallel_tool_calls).toBe(true);
 	expect(body.client_metadata).toEqual({
 		session_id: "session-1",
 		thread_id: "session-1",
 		"x-codex-turn-metadata": JSON.stringify({
 			session_id: "session-1",
 			thread_id: "session-1",
-			code_mode_tool_names: ["exec_command", "apply_patch"],
 		}),
 	});
 });

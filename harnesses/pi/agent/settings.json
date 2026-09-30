@@ -3,7 +3,7 @@
   "defaultProjectTrust": "always",
   "lastChangelogVersion": "0.85.1",
   "defaultProvider": "openai-codex",
-  "defaultModel": "gpt-6-astra",
+  "defaultModel": "gpt-6-luna",
   "defaultThinkingLevel": "medium",
   "packages": [
     "packages/pi-libtui",
@@ -17,11 +17,9 @@
     "packages/pi-developer-messages",
     "packages/pi-codex-native",
     "packages/pi-skills",
-    "packages/pi-code-mode",
     "packages/pi-exec-command",
     "packages/pi-fileops",
     "packages/pi-view-image",
-    "packages/pi-tool-search",
     "packages/pi-custom-editor",
     "packages/pi-prompt-storage",
     "packages/pi-thinking-binding",
@@ -50,7 +48,16 @@
     "codeBlockIndent": "  ",
     "mermaid": "streaming"
   },
-  "defaultTools": [],
+  "defaultTools": [
+    "codemode",
+    "skill",
+    "web__run",
+    "exec_command",
+    "write_stdin",
+    "tool_search",
+    "apply_patch",
+    "view_image"
+  ],
   "showHardwareCursor": false,
   "branchSummary": {
     "skipPrompt": false
@@ -61,10 +68,16 @@
     "anthropicExtraUsage": false
   },
   "enabledModels": [
-    "anthropic/claude-fable-5-1",
-    "openai/gpt-6-astra",
-    "openai-codex/gpt-5.6-sol",
-    "openai-codex/gpt-5.6-luna",
-    "openai-codex/gpt-5.6-terra"
-  ]
+    "openai-codex/gpt-6-astra",
+    "openai-codex/gpt-6-luna",
+    "openai-codex/gpt-6.1-sol",
+    "openai-codex/gpt-6-sol"
+  ],
+  "modelThinkingLevels": {
+    "openai-codex/gpt-6-astra": "high",
+    "openai-codex/gpt-5.6-luna": "high",
+    "openai-codex/gpt-6-luna": "high",
+    "openai-codex/gpt-6.1-sol": "high",
+    "openai-codex/gpt-6-sol": "high"
+  }
 }

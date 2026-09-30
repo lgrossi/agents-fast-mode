@@ -49,7 +49,7 @@ pi.compaction.enabled = true
 pi.compaction.reserveTokens = 16384
 pi.compaction.keepRecentTokens = 20000
 pi.branchSummary.skipPrompt = false
-pi.enabledModels = [ "anthropic/claude-fable-5-1", "openai-codex/gpt-5.6-sol", "openai-codex/gpt-5.6-luna", "openai-codex/gpt-5.6-terra", "openai-codex/gpt-6-astra" ]
+pi.enabledModels = ["openai-codex/gpt-6-astra", "openai-codex/gpt-6-luna", "openai-codex/gpt-6.1-sol", "openai-codex/gpt-6-sol"]
 pi-codex-native.cacheDiagnostics = "off"
 pi-codex-native.fallbackCompaction = false
 pi-codex-native.contextWindowPreset = "balanced"
@@ -60,8 +60,5 @@ pi-voice.v3Voice = "sol"
 pi.steeringMode = "one-at-a-time"
 
 [tools]
-pi.defaultTools = []
+pi.defaultTools = ["codemode", "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image"]
 pi-skills.catalogVisibility = "when-active"
-pi-code-mode.tools = [ "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image" ]
-pi-code-mode.defaultOutputTokens = 10000
-pi-tool-search.tools = []

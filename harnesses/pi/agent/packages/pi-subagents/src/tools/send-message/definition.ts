@@ -24,6 +24,7 @@ export function createSendMessageTool(
 ): ToolDefinition<typeof PARAMETERS, SendMessageDetails> {
 	return {
 		name: AGENT_TOOLS.sendMessage,
+		exposure: "model-only",
 		label: "Send Agent Message",
 		description: "Send an explicit interim coordination message to an existing agent without triggering a new turn.",
 		promptGuidelines: [
