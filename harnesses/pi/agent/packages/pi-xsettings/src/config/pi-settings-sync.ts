@@ -1,3 +1,4 @@
+import { modelOverrideRecord, modelOverrideRows } from "./pi-compaction.ts";
 import { createHash } from "node:crypto";
 import { mkdirSync, readFileSync, realpathSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -21,7 +22,7 @@ const { lock } = createRequire(realpathSync(fileURLToPath(import.meta.url)))("pr
 
 type JsonValue = null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
 type JsonObject = { [key: string]: JsonValue };
-type PiValue = boolean | number | string | string[];
+type PiValue = SettingValue;
 // null records a synchronized deletion; a missing key has no established baseline.
 type Snapshot = Record<string, PiValue | null>;
 
@@ -77,8 +78,22 @@ function writeFile(path: string, source: string): void {
 	renameSync(temporary, target);
 }
 
+function isSettingValue(value: JsonValue | StoredSettingValue): value is SettingValue {
+	if (value === null || value instanceof Date) return false;
+	if (Array.isArray(value)) return value.every(isSettingValue);
+	if (typeof value === "object")
+		return Object.values(value).every((item) => item !== undefined && isSettingValue(item));
+	return (
+		typeof value === "string" || typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value))
+	);
+}
+
 function piValue(value: JsonValue | StoredSettingValue | undefined, key: string): PiValue | null {
 	if (value === undefined) return null;
+	if (key === "compaction.modelOverrides") {
+		if (!isSettingValue(value)) throw new Error("Invalid compaction model overrides");
+		return modelOverrideRows(value);
+	}
 	if (typeof value === "boolean" || typeof value === "number" || typeof value === "string") return value;
 	if (Array.isArray(value) && value.every((item): item is string => typeof item === "string")) return value;
 	throw new Error(`Invalid Pi setting: ${key}`);
@@ -144,7 +159,11 @@ function mergeSettings(document: SettingsRecord, json: JsonObject, baseline: Sna
 		}
 		if (value === null) deletePath(document, path);
 		else setPath(document, path, value);
-		putJson(json, key.split("."), value);
+		putJson(
+			json,
+			key.split("."),
+			value !== null && key === "compaction.modelOverrides" ? modelOverrideRecord(value) : value,
+		);
 		baseline[key] = value;
 	}
 	if (edit) {

@@ -157,6 +157,20 @@ describe("Pi settings reconciliation", () => {
 		});
 	});
 
+	test("a stale native session cannot restore a removed model through an unrelated save", async () => {
+		const f = fixture('[behavior]\npi.enabledModels = ["openai/astra", "openai-codex/astra"]\n');
+		await f.sync.reconcile();
+		const native = SettingsManager.create(f.directory, f.directory, { projectTrusted: false });
+		await f.store.set(["behavior", "pi", "enabledModels"], ["openai-codex/astra"]);
+		await f.sync.reconcile();
+		native.setTheme("dark");
+		await native.flush();
+		const restarted = new PiSettingsSync(f.tomlPath, f.baselinePath);
+		expect((await restarted.reconcile()).conflicts).toEqual([]);
+		expect(configuredPiValues((await restarted.reconcile()).document).enabledModels).toEqual(["openai-codex/astra"]);
+		expect(JSON.parse(readFileSync(f.jsonPath, "utf8")).enabledModels).toEqual(["openai-codex/astra"]);
+	});
+
 	test.each(["toml", "json", "baseline"] as const)(
 		"does not overwrite files after invalid %s and recovers after repair",
 		async (broken) => {
@@ -216,3 +230,45 @@ describe("Pi settings reconciliation", () => {
 		expect(configuredPiValues(await f.store.load()).theme).toBe("light");
 	});
 });
+
+test("per-model budgets round-trip through native settings with inherited values", async () => {
+	const f = fixture(
+		"",
+		JSON.stringify({
+			cacheWarming: "idle",
+			compaction: {
+				modelOverrides: {
+					"openai-codex/gpt-6-sol": { reserveTokens: 32768 },
+				},
+			},
+		}),
+	);
+	const imported = await f.sync.reconcile();
+	expect(configuredPiValues(imported.document)).toMatchObject({
+		cacheWarming: "idle",
+		"compaction.modelOverrides": [
+			{ model: "openai-codex/gpt-6-sol", reserveTokens: 32768, keepRecentTokens: "inherit" },
+		],
+	});
+	await f.sync.reconcile({
+		path: ["behavior", "pi", "compaction", "modelOverrides"],
+		value: [{ model: "openai-codex/gpt-6-luna", reserveTokens: "inherit", keepRecentTokens: 0 }],
+	});
+	const native = JSON.parse(readFileSync(f.jsonPath, "utf8"));
+	expect(native.compaction.modelOverrides).toEqual({ "openai-codex/gpt-6-luna": { keepRecentTokens: 0 } });
+	const before = readFileSync(f.tomlPath, "utf8");
+	await f.sync.reconcile();
+	expect(readFileSync(f.tomlPath, "utf8")).toBe(before);
+	await f.sync.reconcile({ path: ["behavior", "pi", "compaction", "modelOverrides"], value: undefined });
+	expect(JSON.parse(readFileSync(f.jsonPath, "utf8")).compaction?.modelOverrides).toBeUndefined();
+});
+
+test.each([null, { reserveTokens: -1 }, { reserveTokens: "bad" }, { unexpected: 1 }, { model: "other/model" }])(
+	"invalid native model budget fails without overwriting settings (%j)",
+	async (value) => {
+		const f = fixture("", JSON.stringify({ compaction: { modelOverrides: { "openai-codex/gpt-6-sol": value } } }));
+		const before = readFileSync(f.jsonPath, "utf8");
+		await expect(f.sync.reconcile()).rejects.toThrow("Invalid compaction");
+		expect(readFileSync(f.jsonPath, "utf8")).toBe(before);
+	},
+);

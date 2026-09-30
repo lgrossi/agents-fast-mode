@@ -78,6 +78,14 @@ target written rather than the link. Comments and layout are not preserved. An
 omitted `pi.defaultTools` means "use Pi's default tools"; `pi.defaultTools =
 []` disables every built-in tool.
 
+Pi 0.87.1 settings include **Cache warming** (`off`, `streaming`, `idle`)
+and **Compaction → Per-model budgets**. Cache warming follows Pi's `streaming` default and
+uses Pi's provider eligibility and cost checks; idle warming remains opt-in. Budget rows select an exact
+`provider/model` and override response reserve or recent tokens; **Use global
+setting** leaves that field inherited. Native `settings.json` stores the same
+rows as `compaction.modelOverrides`, keyed by model ID. Import and export
+preserve these values and reject malformed budgets before writing.
+
 Recognized Pi settings (theme, compaction, retry, transport, message delivery,
 enabled models, default tools, and the other `pi.*` keys shown in the editor)
 are synchronized with `settings.json`, which Pi reads before extensions load.

@@ -68,10 +68,14 @@ function harness(policy: "never" | "mid-turn" | "always" = "never", modelId = "g
 			return true;
 		},
 	} as never;
-	const runtime = registerContextWindow(pi, () => ({
-		...DEFAULT_CODEX_NATIVE_SETTINGS,
-		contextAutoUpgrade: policy,
-	}));
+	const runtime = registerContextWindow(
+		pi,
+		() => ({
+			...DEFAULT_CODEX_NATIVE_SETTINGS,
+			contextAutoUpgrade: policy,
+		}),
+		() => 16_384,
+	);
 	return {
 		ctx,
 		handlers,

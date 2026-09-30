@@ -88,6 +88,8 @@ const unregister = registerDeveloperMessageContribution({
 
 - `id` is required and unique; registering the same id again replaces the
   earlier contribution.
+- IDs appear in serialized prompts. Keep them stable across reloads; use the
+  session ID for session-scoped registrations, never a random instance ID.
 - `priority` sorts low to high (default `0`); `id` breaks ties alphabetically.
 - `providers` restricts the contribution to those provider ids. A contribution
   with `providers` set is skipped when the current provider is unknown.

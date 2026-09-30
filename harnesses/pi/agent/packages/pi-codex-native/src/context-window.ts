@@ -1,5 +1,10 @@
 import type { Api, Model } from "@earendil-works/pi-ai";
-import type { ExtensionAPI, ExtensionContext, SessionBeforeCompactEvent } from "@earendil-works/pi-coding-agent";
+import {
+	SettingsManager,
+	type ExtensionAPI,
+	type ExtensionContext,
+	type SessionBeforeCompactEvent,
+} from "@earendil-works/pi-coding-agent";
 import { registerAction } from "@luan.sh/pi-libactions/sdk";
 import { tuiTheme } from "@luan.sh/pi-libtui";
 import { codexCompatibility } from "./compatibility.ts";
@@ -16,10 +21,6 @@ import {
 	requestedContextWindowPreset,
 } from "./protocol/context-window.ts";
 
-// Pi does not expose the effective compaction threshold. Match its compiled
-// default until a public API exposes the configured reserve.
-const DEFAULT_COMPACTION_RESERVE = 16_384;
-
 type State = { preset: ContextWindowPreset; upgradedPreset?: ContextWindowPreset };
 
 function eligible(model: Model<Api> | undefined): model is Model<Api> {
@@ -30,6 +31,10 @@ function eligible(model: Model<Api> | undefined): model is Model<Api> {
 export default function registerContextWindow(
 	pi: ExtensionAPI,
 	getSettings: () => CodexNativeSettings = getCodexNativeSettings,
+	getReserve: (ctx: ExtensionContext) => number = (ctx) =>
+		SettingsManager.create(ctx.cwd, undefined, { projectTrusted: ctx.isProjectTrusted() }).getCompactionSettings(
+			ctx.model,
+		).reserveTokens,
 ): { settingsChanged(settings: Readonly<CodexNativeSettings>): Promise<void>; dispose(): void } {
 	const states = new WeakMap<object, State>();
 	let currentContext: ExtensionContext | undefined;
@@ -118,10 +123,7 @@ export default function registerContextWindow(
 		if (usage?.tokens === null || usage?.tokens === undefined) return;
 		const current = effectivePreset(ctx);
 		const index = CONTEXT_WINDOW_PRESETS.indexOf(current);
-		if (
-			index >= CONTEXT_WINDOW_PRESETS.length - 1 ||
-			usage.tokens <= CODEX_CONTEXT_WINDOWS[current] - DEFAULT_COMPACTION_RESERVE
-		)
+		if (index >= CONTEXT_WINDOW_PRESETS.length - 1 || usage.tokens <= CODEX_CONTEXT_WINDOWS[current] - getReserve(ctx))
 			return;
 		stateFor(ctx).upgradedPreset = CONTEXT_WINDOW_PRESETS[index + 1]!;
 		await apply(ctx);

@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { registerCodexNativeLifecycle } from "../src/extension.ts";
 
-type Handler = (event: unknown, ctx: ExtensionContext) => Promise<void> | void;
+type Handler = (event: unknown, ctx: ExtensionContext) => Promise<void> | void | { action: "stop" };
 
 function lifecycleHarness(options: { notifyThrows?: boolean } = {}) {
 	const handlers = new Map<string, Handler>();
@@ -75,6 +75,15 @@ test("notification failures never reject provider lifecycle", async () => {
 	expect(harness.calls).toContain("provider:start");
 	expect(harness.calls).toContain("provider:model");
 	expect(harness.calls).toContain("provider:shutdown");
+});
+
+test("Codex stops generic cache warming while other providers retain Pi's decision", () => {
+	const { handlers, ctx } = lifecycleHarness();
+	const decide = handlers.get("cache_warming_decision");
+	for (const provider of ["openai-codex", "anthropic", undefined]) {
+		const context = { ...ctx, model: provider ? { provider } : undefined } as ExtensionContext;
+		expect(decide?.({}, context)).toEqual(provider === "openai-codex" ? { action: "stop" } : undefined);
+	}
 });
 
 test("published settings reconfigure diagnostics in the active session", async () => {

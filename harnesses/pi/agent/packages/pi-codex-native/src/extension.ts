@@ -36,6 +36,11 @@ export function registerCodexNativeLifecycle(
 			reportDiagnosticsFailure(ctx, action, error);
 		}
 	};
+	pi.on("cache_warming_decision", (_event, ctx) => {
+		// Codex cannot honor Pi's one-token warming cap; do not advance its live response chain.
+		if (ctx.model?.provider === "openai-codex") return { action: "stop" };
+		return undefined;
+	});
 	pi.on("session_start", async (_event, ctx) => {
 		currentContext = ctx;
 		runtime.startSession(ctx);

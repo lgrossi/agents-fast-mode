@@ -1,3 +1,4 @@
+import { compactionModelOverrides, modelOverrideRows } from "./pi-compaction.ts";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { type SettingDefinition, type SettingOption, type SettingValue, settingPath } from "../protocol/settings.ts";
 import { getPath, type SettingsRecord } from "./store.ts";
@@ -10,6 +11,17 @@ const option = (value: string | number, label: string, description = ""): Settin
 const numbers = (...values: number[]): SettingOption[] => values.map((value) => option(value, String(value)));
 
 export const PI_SETTINGS = [
+	compactionModelOverrides,
+	{
+		key: "cacheWarming",
+		label: "Prompt cache warming",
+		description: "Keep eligible prompt caches warm during runs or while idle.",
+		category: "behavior",
+		section: "Models",
+		type: "enum",
+		default: "streaming",
+		options: [option("off", "Off"), option("streaming", "During runs"), option("idle", "During runs and while idle")],
+	},
 	{
 		key: "theme",
 		label: "Theme",
@@ -453,6 +465,10 @@ export function configuredPiValues(document: SettingsRecord): Record<string, Set
 	const result: Record<string, SettingValue> = {};
 	for (const definition of PI_SETTINGS) {
 		const value = getPath(document, settingPath(definition));
+		if (definition.key === "compaction.modelOverrides" && value !== undefined) {
+			result[definition.key] = modelOverrideRows(value as SettingValue);
+			continue;
+		}
 		if (typeof value === "boolean" || typeof value === "number" || typeof value === "string")
 			result[definition.key] = value;
 		else if (Array.isArray(value) && value.every((item) => typeof item === "string")) result[definition.key] = value;
