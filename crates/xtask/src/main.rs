@@ -1,15 +1,16 @@
 use std::env;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use anyhow::{Context, Result};
 use xtask::harness::{run, Operation};
 
-fn workspace_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("xtask must remain under crates/xtask")
-        .to_path_buf()
+fn workspace_root() -> Result<PathBuf> {
+    // Cached binaries can come from another checkout; never use their build path for live links.
+    let cwd = env::current_dir().context("read working directory")?;
+    cwd.ancestors()
+        .find(|directory| directory.join("managed.toml").is_file())
+        .map(PathBuf::from)
+        .context("run xtask from a repository containing managed.toml or one of its subdirectories")
 }
 
 fn parse_args() -> Result<(Operation, PathBuf)> {
@@ -38,5 +39,5 @@ fn parse_args() -> Result<(Operation, PathBuf)> {
 
 fn main() -> Result<()> {
     let (operation, home) = parse_args()?;
-    run(operation, &workspace_root(), &home)
+    run(operation, &workspace_root()?, &home)
 }

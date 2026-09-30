@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 
 use anyhow::Result;
 use assert_fs::fixture::ChildPath;
@@ -99,6 +100,59 @@ seeds = []
 #[fixture]
 fn fixture() -> HarnessFixture {
     HarnessFixture::new()
+}
+
+#[rstest]
+#[case::repository_root("")]
+#[case::nested_directory("nested/deeper")]
+fn cli_manages_the_checkout_it_runs_in(
+    fixture: HarnessFixture,
+    #[case] working_directory: &str,
+) -> Result<()> {
+    fixture.write_managed(&["files"], &[]);
+    let repository = fs::canonicalize(&fixture.repository)?;
+    let source = repository.join("source/files/settings.json");
+    fs::create_dir_all(source.parent().expect("source parent"))?;
+    fs::write(&source, "user settings")?;
+    let cwd = repository.join(working_directory);
+    fs::create_dir_all(&cwd)?;
+    let target = fixture.home.join("target/files/settings.json");
+
+    // This executable was built elsewhere. Reusing it must not select its build checkout.
+    for operation in ["setup", "setup", "check", "unlink"] {
+        let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+            .current_dir(&cwd)
+            .args(["harness", operation, "--home"])
+            .arg(&fixture.home)
+            .output()?;
+        assert!(
+            output.status.success(),
+            "{operation} failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        if operation == "unlink" {
+            assert!(!target.try_exists()?);
+        } else {
+            assert_eq!(fs::read_link(&target)?, source);
+        }
+    }
+    assert_eq!(fs::read_to_string(&source)?, "user settings");
+    Ok(())
+}
+
+#[rstest]
+fn cli_refuses_to_guess_a_checkout_outside_a_managed_repository(
+    fixture: HarnessFixture,
+) -> Result<()> {
+    let output = Command::new(env!("CARGO_BIN_EXE_xtask"))
+        .current_dir(&fixture.repository)
+        .args(["harness", "setup", "--home"])
+        .arg(&fixture.home)
+        .output()?;
+    assert!(!output.status.success());
+    assert!(String::from_utf8_lossy(&output.stderr).contains("managed.toml"));
+    assert_eq!(fs::read_dir(&fixture.home)?.count(), 0);
+    Ok(())
 }
 
 #[cfg(unix)]
