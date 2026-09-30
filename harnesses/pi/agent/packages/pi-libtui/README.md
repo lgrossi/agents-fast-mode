@@ -51,8 +51,14 @@ neither a generated 256-color palette nor an ANSI base-16 palette, the host
 switches to Pi's built-in theme for the detected light or dark scheme (dark if
 the measurement fails).
 
-Requires Pi 0.99.1 or later. Pi supplies the default colors and ANSI palette;
-libtui also measures the indexed palette anchors.
+Requires Pi 0.99.1 or later. Pi's public terminal-color query supplies default
+colors and the ANSI palette; libtui additionally measures the two indexed
+palette anchors used by `harmonious`.
+
+Painted surfaces set a contrasting default foreground as well as a background,
+including after child text resets its colors. Explicit text colors remain
+intact. If the generated palette cannot provide readable contrast, button and
+surface text uses black or white instead.
 
 ## Components
 
