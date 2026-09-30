@@ -8,8 +8,6 @@ import {
 } from "./contributions/xsettings.ts";
 
 const FAST_SERVICE_TIER = "priority";
-const FAST_ORIGINATOR = "codex_cli_rs";
-const ROUTING_HINT = "x-codex-routing-hint";
 
 type State = { enabled: boolean };
 type ModelServiceTier = "standard" | "priority";
@@ -17,7 +15,6 @@ type ModelWithServiceTier = NonNullable<ExtensionContext["model"]> & { serviceTi
 // type-boundary: Pi exposes provider payloads without a type; isRecord narrows the payload before mutation.
 type UntrustedProviderValue = unknown;
 type Payload = Record<string, UntrustedProviderValue>;
-const ownedHeaders = new WeakMap<object, { originator?: string; routingHint?: string }>();
 
 function isRecord(value: UntrustedProviderValue): value is Payload {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -94,27 +91,6 @@ export default function registerFastMode(
 		updateStatus(ctx, enabled);
 		if (!enabled || !eligible(ctx) || !isRecord(event.payload)) return undefined;
 		return { ...event.payload, service_tier: FAST_SERVICE_TIER };
-	});
-	pi.on("before_provider_headers", (event, ctx) => {
-		const state = stateFor(ctx);
-		const model = ctx.model;
-		const compatibility = model ? codexCompatibility(model) : undefined;
-		const enabled = fastModeEnabled(ctx, state);
-		if (!enabled || compatibility?.features.fastMode !== true || !model) {
-			const owned = ownedHeaders.get(event.headers as object);
-			if (owned?.originator !== undefined && event.headers.originator === owned.originator)
-				event.headers.originator = null;
-			if (owned?.routingHint !== undefined && event.headers[ROUTING_HINT] === owned.routingHint)
-				event.headers[ROUTING_HINT] = null;
-			ownedHeaders.delete(event.headers as object);
-			return;
-		}
-		event.headers.originator = FAST_ORIGINATOR;
-		event.headers[ROUTING_HINT] = `model=${model.id};tier=${FAST_SERVICE_TIER}`;
-		ownedHeaders.set(event.headers as object, {
-			originator: FAST_ORIGINATOR,
-			routingHint: event.headers[ROUTING_HINT] as string,
-		});
 	});
 	pi.on("session_shutdown", (_event, ctx) => {
 		if (currentContext?.sessionManager === ctx.sessionManager) currentContext = undefined;

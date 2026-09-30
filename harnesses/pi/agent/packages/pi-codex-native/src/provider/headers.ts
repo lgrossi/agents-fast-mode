@@ -5,7 +5,6 @@ export { headersToRecord } from "./header-record.ts";
 type ProviderHeaders = Record<string, string | null>;
 
 export const PI_CODEX_CONVERSION_ORIGINATOR = "pi-codex-conversion";
-export const CODEX_FAST_MODE_ORIGINATOR = "codex_cli_rs";
 export const X_CODEX_ROUTING_HINT_HEADER = "x-codex-routing-hint";
 
 export interface CodexRequestRouting {
@@ -19,12 +18,7 @@ export function resolveCodexRequestRouting(options: {
 	serviceTier?: string | undefined;
 	normalOriginator?: string | undefined;
 }): CodexRequestRouting {
-	return options.fast && options.serviceTier === "priority"
-		? {
-				originator: CODEX_FAST_MODE_ORIGINATOR,
-				routingHint: `model=${options.model};tier=priority`,
-			}
-		: { originator: options.normalOriginator ?? "pi" };
+	return { originator: options.normalOriginator ?? "pi" };
 }
 
 export function extractAccountId(token: string): string {

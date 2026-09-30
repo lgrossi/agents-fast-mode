@@ -103,9 +103,9 @@ test("Fast mode applies the selected model's requested priority tier through pro
 		registerCommand() {},
 	} as never);
 	expect(handlers.get("before_provider_request")?.({ payload: {} }, ctx)).toEqual({ service_tier: "priority" });
-	const headers: Record<string, string | null> = {};
+	const headers: Record<string, string | null> = { originator: "configured-client" };
 	handlers.get("before_provider_headers")?.({ headers } as never, ctx);
-	expect(headers).toEqual({ originator: "codex_cli_rs", "x-codex-routing-hint": "model=gpt-5.6-sol;tier=priority" });
+	expect(headers).toEqual({ originator: "configured-client" });
 	registration.dispose();
 });
 

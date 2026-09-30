@@ -278,6 +278,19 @@ test("serializes Code Mode audio as a Responses tool output", () => {
 	});
 });
 
+test("ordinary Codex function tools keep optional arguments optional", () => {
+	const parameters = {
+		type: "object",
+		properties: { action: { type: "string" }, name: { type: "string" } },
+		required: ["action"],
+	};
+	const body = buildRequestBody(model, {
+		messages: [],
+		tools: [{ name: "notebook__control", description: "Control notebook", parameters }],
+	});
+	expect(body.tools?.[0]).toMatchObject({ type: "function", strict: false, parameters });
+});
+
 test("transcript prompt and tool deltas retain their position and honor removals", () => {
 	const nativeModel = { ...model, compat: { supportsMidConvoSystemMessages: true, supportsAdditionalTools: true } };
 	const search = { name: "tool_search", description: "Find tools", parameters: { type: "object" as const } };
@@ -304,4 +317,17 @@ test("transcript prompt and tool deltas retain their position and honor removals
 			(item) => item !== null && typeof item === "object" && "type" in item && item.type === "additional_tools",
 		),
 	).toBe(false);
+});
+
+test.each(["off", "none"])("explicit reasoning %s uses the model's Off mapping", (effort) => {
+	const options = effort === "off" ? {} : { reasoningEffort: "none" as const };
+	expect(
+		buildRequestBody({ ...model, thinkingLevelMap: { off: "none" } }, { messages: [] }, options).reasoning,
+	).toMatchObject({ effort: "none" });
+	const unsupported = buildRequestBody(
+		{ ...model, thinkingLevelMap: { off: null } },
+		{ messages: [] },
+		options,
+	).reasoning;
+	expect(unsupported).toBeUndefined();
 });

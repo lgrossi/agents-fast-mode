@@ -108,7 +108,8 @@ export function buildRequestBody<TApi extends Api>(
 
 	if (toolPlacement.immediate.length > 0) {
 		body.tools = convertResponsesTools(toolPlacement.immediate, {
-			strict: null,
+			// The backend otherwise treats optional properties as required. Codex also sends false.
+			strict: false,
 			supportsStrictMode,
 			supportsOpenAIGrammarTools,
 		});
@@ -120,7 +121,9 @@ export function buildRequestBody<TApi extends Api>(
 		const thinkingLevelMap = model.thinkingLevelMap as Record<string, string | null | undefined> | undefined;
 		const effort =
 			reasoningEffort === "none"
-				? (thinkingLevelMap?.["off"] ?? "none")
+				? thinkingLevelMap?.["off"] === undefined
+					? "none"
+					: thinkingLevelMap["off"]
 				: (thinkingLevelMap?.[reasoningEffort] ?? reasoningEffort);
 		if (effort === null) return body;
 		body.reasoning = {
@@ -128,6 +131,10 @@ export function buildRequestBody<TApi extends Api>(
 			summary: ((options as { reasoningSummary?: string | undefined } | undefined)?.reasoningSummary ??
 				"auto") as string,
 		};
+	}
+
+	if (reasoningEffort === undefined && model.reasoning && model.thinkingLevelMap?.off !== null) {
+		body.reasoning = { effort: model.thinkingLevelMap?.off ?? "none" };
 	}
 
 	return body;

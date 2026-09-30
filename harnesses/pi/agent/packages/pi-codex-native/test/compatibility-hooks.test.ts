@@ -37,13 +37,13 @@ test("registered LiteLLM route receives fast and Chat Completions verbosity hook
 	const headers = { originator: "stale", "x-codex-routing-hint": "stale" } as Record<string, string | null>;
 	for (const handler of handlers.get("before_provider_headers") ?? []) handler({ headers } as never, ctx);
 	expect(headers).toMatchObject({
-		originator: "codex_cli_rs",
-		"x-codex-routing-hint": "model=gpt-5.6-luna;tier=priority",
+		originator: "stale",
+		"x-codex-routing-hint": "stale",
 	});
 	unregister();
 });
 
-test("fast-mode cleanup clears harness headers when the route is no longer eligible", () => {
+test("fast mode preserves configured headers on unsupported routes", () => {
 	const unregister = registerCodexCompatibleProvider({
 		provider: "litellm",
 		model: "gpt-5.6-luna",
