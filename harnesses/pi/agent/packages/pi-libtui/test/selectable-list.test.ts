@@ -221,6 +221,23 @@ describe("SelectableList", () => {
 		expect(changes).toEqual([1]);
 	});
 
+	test("wheel advances past short items when the next item cannot fit", () => {
+		const list = new SelectableList({
+			items: [["A", "A detail"], ["B"], ["C", "C detail", "C detail", "C detail"], ["D"]],
+			maxVisible: 4,
+			renderItem: (item) => item,
+			requestRender() {},
+			onActivate() {},
+		});
+
+		expect(list.render(20)).toEqual(["A", "A detail", "B"]);
+		list.onMouse(event({ type: "wheel", row: 0, col: 0, wheel: 1 }));
+		expect(list.render(20)).toEqual(["B"]);
+		list.onMouse(event({ type: "wheel", row: 0, col: 0, wheel: 1 }));
+		expect(list.render(20)).toEqual(["C", "C detail", "C detail", "C detail"]);
+		expect(list.getSelectedIndex()).toBe(0);
+	});
+
 	test("external item and selection synchronization is silent", () => {
 		const changes: string[] = [];
 		let renders = 0;

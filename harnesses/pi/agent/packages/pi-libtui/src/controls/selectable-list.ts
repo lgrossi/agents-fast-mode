@@ -399,7 +399,7 @@ function visibleRange(
 	if (!followSelection) {
 		let end = fitEnd(rendered, start, budget);
 		let used = rendered.slice(start, end).reduce((height, lines) => height + lines.length, 0);
-		while (start > 0 && used + rendered[start - 1]!.length <= budget) {
+		while (end === rendered.length && start > 0 && used + rendered[start - 1]!.length <= budget) {
 			start -= 1;
 			used += rendered[start]!.length;
 		}
