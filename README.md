@@ -86,13 +86,24 @@ reasoning effort. Subagents inherit the parent's model and effort unless a
 spawn supplies direct overrides.
 
 The managed harness requires Pi 0.99.1 or later and uses its built-in `codemode`,
-`tool_search`, and MCP support. `pi.defaultTools` selects startup tools.
-Scripts run in a fresh QuickJS sandbox; `store`/`load` persist JSON values.
-Use `exec_command` and `write_stdin` for persistent processes. The custom
-codemode, tool-search, and notebook implementations have been removed.
-SDK subagents opt into the same built-ins. Image tools and collaboration stay direct.
-The Codex provider uses Pi's model catalog, including GPT-6.1 Sol. GPT-6 Luna
-is the default; Astra and both Sol generations remain available.
+`tool_search`, and MCP support. `pi.defaultTools` selects tools; `codemode.mode`
+defaults to `on`, keeping direct tools available alongside JavaScript batching.
+MCP servers belong in Pi's `mcp.json` and are managed with `/mcp` or `pi mcp`.
+
+Scripts use `tools.*`, `text()`, `image()`, `store()`/`load()`, and
+`searchTools()`/`describeTool()`. They run in a fresh QuickJS sandbox; there is
+no notebook kernel or `exec`/`wait` cell lifecycle. Use `exec_command` and
+`write_stdin` for persistent processes. The custom Code Mode, Tool Search,
+and notebook implementations and their compatibility adapters have been removed.
+Image tools, conversation controls, context rollover, and collaboration stay
+direct. Shell tools expose structured output to scripts. SDK subagents opt into
+the built-ins and respect Pi's built-in disable settings.
+
+The Codex Native provider stays enabled for native checkpoints, context recovery,
+Astra controls, web search, and quota handling. Its catalog comes from Pi and
+includes GPT-6.1 Sol. The default is GPT-6 Luna; Astra, both Sol generations, and
+Luna remain in the model picker. Pi's new `/login openai` subscription route is
+available independently, but does not replace those native provider features.
 
 Run `/reload` after changing package loading, keybindings, or a setting documented as reload-only. Appearance and other live settings apply immediately when their package says they do.
 

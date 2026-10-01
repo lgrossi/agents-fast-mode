@@ -24,6 +24,32 @@ documented as reload-only.
 
 ## Extensions
 
+### Conversation and context recovery
+
+[`pi-conversation`](/packages/pi-conversation/) lets the agent ask questions and
+send answers while work continues. Reply directly through inline choices or the text field. These tools work in ordinary mode. Optional **Persistent** mode uses Astra's exact
+Codex catalog instructions to continue useful authorized follow-up while delivering
+answers asynchronously. Configure it in the existing Codex Native settings UI.
+The selection is saved with the current session. No slash commands are needed.
+
+[`pi-context-windows`](/packages/pi-context-windows/) provides fresh windows, searchable history,
+and working notes that survive rollover and resume. Both use public Pi APIs and
+work with the native Codex provider, including Astra. Read the
+[topology and operation guide](/docs/pi-context-and-conversation/).
+
+### Voice and images
+
+[`pi-voice`](/packages/pi-voice/) adds Voice, Dictate, and Phone controls to the
+Pi editor. [`pi-imagegen`](/packages/pi-imagegen/) uses the standalone upstream
+imagegen package with our tool presentation.
+
+Pi 0.99 provides codemode, tool search, and MCP. The harness uses those built-ins;
+`store` and `load` preserve JSON values between codemode calls.
+
+Codex Native also provides native Astra effort updates and an account usage
+panel. Context Windows can generate recovery summaries and archive completed
+windows in the Pi tree. See [how to try these features](/docs/pi-context-and-conversation/#try-the-additional-features).
+
 <!-- extensions -->
 
 ## Libraries
