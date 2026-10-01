@@ -62,6 +62,12 @@ Personal instructions may be placed in
 `.pi/REALTIME-SYSTEM-PROMPT.md`. Each is limited to 8 KiB. The extension reads
 these files and does not create or overwrite them.
 
+Native microphone audio uses Codex-derived echo cancellation, noise suppression,
+and gain control. The echo reference comes from actual device playback with
+capture/playback timestamps. Mute transitions discard earlier captured audio;
+microphone failure stops forwarding and reports an error. Browser audio continues
+to use the browser's own echo cancellation.
+
 ## Settings and actions
 
 Settings appear under **Voice** in xsettings' Behavior category. The namespace

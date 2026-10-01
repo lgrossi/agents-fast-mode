@@ -32,7 +32,7 @@ pub struct V3Session {
     encoder_task: tokio::task::JoinHandle<()>,
     meter_task: tokio::task::JoinHandle<()>,
     input_muted: Arc<AtomicBool>,
-    _capture: Option<Capture>,
+    capture: Option<Capture>,
     _playback: Option<Playback>,
     bridge_input: Option<Arc<ArrayQueue<f32>>>,
 }
@@ -157,15 +157,29 @@ impl V3Session {
         );
         register_playout(&peer, output, events.clone());
         let input_muted = Arc::new(AtomicBool::new(false));
-        let encoder_task = spawn_encoder(
-            track,
-            input_samples,
-            input_rate,
-            input_enabled,
-            Arc::clone(&input_muted),
-            Arc::clone(&microphone_peak),
-            events.clone(),
-        );
+        let encoder_task = if let (Some(capture), Some(playback)) = (&capture, &playback) {
+            crate::device_encoder::spawn(
+                track,
+                crate::device_encoder::DeviceAudio {
+                    capture: capture.frames.clone(),
+                    input_rate,
+                    render: playback.rendered.clone(),
+                    output_rate: playback.sample_rate,
+                },
+                input_enabled,
+                events.clone(),
+            )
+        } else {
+            spawn_encoder(
+                track,
+                input_samples,
+                input_rate,
+                input_enabled,
+                Arc::clone(&input_muted),
+                Arc::clone(&microphone_peak),
+                events.clone(),
+            )
+        };
 
         let offer = peer.create_offer(None).await?;
         let mut gather = peer.gathering_complete_promise().await;
@@ -190,7 +204,7 @@ impl V3Session {
                 encoder_task,
                 meter_task,
                 input_muted,
-                _capture: capture,
+                capture,
                 _playback: playback,
                 bridge_input,
             },
@@ -213,7 +227,12 @@ impl V3Session {
     }
 
     pub fn set_input_muted(&self, muted: bool) {
-        self.input_muted.store(muted, Ordering::Relaxed);
+        let previous = self.input_muted.swap(muted, Ordering::AcqRel);
+        if previous != muted
+            && let Some(capture) = &self.capture
+        {
+            capture.frames.generation.fetch_add(1, Ordering::AcqRel);
+        }
     }
 
     pub fn send_pcm(&self, pcm: &[u8]) -> Result<()> {
