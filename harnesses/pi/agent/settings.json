@@ -1,7 +1,7 @@
 {
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
-  "lastChangelogVersion": "0.85.1",
+  "lastChangelogVersion": "0.87.1",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6-luna",
   "defaultThinkingLevel": "medium",
@@ -15,9 +15,8 @@
     "packages/pi-xsettings",
     "packages/pi-subagents",
     "packages/pi-developer-messages",
-    "packages/pi-conversation",
     "packages/pi-context-windows",
-    "packages/pi-imagegen",
+    "packages/pi-conversation",
     "packages/pi-codex-native",
     "packages/pi-skills",
     "packages/pi-exec-command",
@@ -30,6 +29,7 @@
       "source": "npm:@plannotator/pi-extension",
       "skills": []
     },
+    "packages/pi-imagegen",
     "packages/pi-voice"
   ],
   "compaction": {
@@ -46,14 +46,26 @@
     "showImages": true
   },
   "steeringMode": "one-at-a-time",
-  "quietStartup": false,
+  "quietStartup": true,
   "markdown": {
     "codeBlockIndent": "  ",
     "mermaid": "streaming"
   },
   "defaultTools": [
-    "image_gen__imagegen",
     "new_context",
+    "request_user_input_async",
+    "send_message_to_user_async",
+    "clock__sleep",
+    "clock__curr_time",
+    "image_gen__imagegen",
+    "codemode",
+    "skill",
+    "web__run",
+    "exec_command",
+    "write_stdin",
+    "tool_search",
+    "apply_patch",
+    "view_image",
     "get_context_remaining",
     "history__list_windows",
     "history__list_items",
@@ -63,19 +75,7 @@
     "notes__read_file",
     "notes__search_contents",
     "notes__append_to_file",
-    "notes__write_file",
-    "request_user_input_async",
-    "send_message_to_user_async",
-    "clock__sleep",
-    "clock__curr_time",
-    "codemode",
-    "skill",
-    "web__run",
-    "exec_command",
-    "write_stdin",
-    "tool_search",
-    "apply_patch",
-    "view_image"
+    "notes__write_file"
   ],
   "showHardwareCursor": false,
   "branchSummary": {
@@ -92,11 +92,16 @@
     "openai-codex/gpt-6.1-sol",
     "openai-codex/gpt-6-sol"
   ],
+  "hideThinkingBlock": true,
+  "retry": {
+    "maxRetries": 5
+  },
   "modelThinkingLevels": {
     "openai-codex/gpt-6-astra": "high",
     "openai-codex/gpt-5.6-luna": "high",
     "openai-codex/gpt-6-luna": "high",
     "openai-codex/gpt-6.1-sol": "high",
     "openai-codex/gpt-6-sol": "high"
-  }
+  },
+  "collapseChangelog": true
 }
