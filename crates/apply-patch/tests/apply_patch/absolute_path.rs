@@ -23,6 +23,20 @@ use std::fs;
 #[cfg(unix)]
 use std::process::Command;
 
+#[rstest::rstest]
+#[case("file.txt")]
+#[case("./file.txt")]
+#[case("nested/../file.txt")]
+fn string_parsing_preserves_path_normalization_and_conversions(#[case] relative: &str) {
+    let base = test_path_buf("/workspace");
+    let input = base.join(relative).to_string_lossy().into_owned();
+    let parsed: AbsolutePathBuf = input.parse().expect("absolute path should parse");
+
+    assert_eq!(parsed.as_path(), base.join("file.txt").as_path());
+    assert_eq!(AbsolutePathBuf::try_from(input.as_str()).unwrap(), parsed);
+    assert_eq!(AbsolutePathBuf::try_from(input).unwrap(), parsed);
+}
+
 #[test]
 fn create_with_absolute_path_ignores_base_path() {
     let base_dir = TempDir::new().expect("base dir");

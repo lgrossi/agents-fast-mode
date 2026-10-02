@@ -272,6 +272,14 @@ impl TryFrom<String> for AbsolutePathBuf {
     }
 }
 
+impl std::str::FromStr for AbsolutePathBuf {
+    type Err = std::io::Error;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        Self::from_absolute_path(value)
+    }
+}
+
 thread_local! {
     static ABSOLUTE_PATH_BASE: RefCell<Option<PathBuf>> = const { RefCell::new(None) };
 }
