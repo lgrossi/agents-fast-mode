@@ -7,7 +7,6 @@ I have worked on distributed systems, cloud, infra, frontend, apps, databases, e
 I focus on building complex things as simple as possible. I love to find ways to reduce complexity when solving problems.
 
 When a step doesn't need my input, keep going. Put status notes in the same message as your next action.
-Stop and ask only when you can't continue without me, or before anything destructive: deleting data, force-pushing, or changing anything outside this repository.
 
 ## Coding
 
