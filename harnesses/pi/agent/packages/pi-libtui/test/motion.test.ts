@@ -72,6 +72,82 @@ class FakeClock implements MotionClock {
 }
 
 describe("MotionScheduler", () => {
+	test.each(["render", "frame"] as const)("defers mounts replaced during a %s until the next tick", (phase) => {
+		const clock = new FakeClock();
+		const scheduler = new MotionScheduler(clock);
+		let renders = 0;
+		let frames = 0;
+		let replacements = 0;
+		let mount: { dispose(): void };
+		const replace = () => {
+			// Bound the broken implementation so this regression never hangs.
+			if (++replacements > 3) throw new Error("tick revisited a new mount");
+			mount.dispose();
+			mount = scheduler.mount(target, options);
+		};
+		const target = {
+			requestRender() {
+				renders++;
+				if (phase === "render") replace();
+			},
+		};
+		const options = {
+			cadenceMs: 40,
+			onFrame() {
+				frames++;
+				if (phase === "frame") replace();
+			},
+		};
+		const keeper = scheduler.mount({ requestRender() {} }, { cadenceMs: 40 });
+		mount = scheduler.mount(target, options);
+
+		clock.tick(40, 40);
+		expect({ replacements, frames, renders }).toEqual({
+			replacements: 1,
+			frames: 1,
+			renders: phase === "render" ? 1 : 0,
+		});
+		expect(scheduler.activeMountCount).toBe(2);
+		clock.tick(40, 80);
+		expect({ replacements, frames, renders }).toEqual({
+			replacements: 2,
+			frames: 2,
+			renders: phase === "render" ? 2 : 0,
+		});
+		mount.dispose();
+		keeper.dispose();
+		expect(scheduler.activeMountCount).toBe(0);
+		expect(scheduler.activeTimerCount).toBe(0);
+	});
+
+	test("defers callbacks added to an existing target and skips mounts disposed before their turn", () => {
+		const clock = new FakeClock();
+		const scheduler = new MotionScheduler(clock);
+		const frames: string[] = [];
+		let added: { dispose(): void } | undefined;
+		const target = { requestRender() {} };
+		const first = scheduler.mount(target, {
+			cadenceMs: 40,
+			onFrame() {
+				frames.push("first");
+				removed.dispose();
+				added ??= scheduler.mount(target, { cadenceMs: 40, onFrame: () => frames.push("added") });
+			},
+		});
+		const removed = scheduler.mount(
+			{ requestRender: () => frames.push("removed render") },
+			{ cadenceMs: 40, onFrame: () => frames.push("removed frame") },
+		);
+		clock.tick(40, 40);
+		expect(frames).toEqual(["first"]);
+		clock.tick(40, 80);
+		expect(frames).toEqual(["first", "first", "added"]);
+		first.dispose();
+		added?.dispose();
+		expect(scheduler.activeMountCount).toBe(0);
+		expect(scheduler.activeTimerCount).toBe(0);
+	});
+
 	test("shares unreferenced cadence timers and releases them by reference count", () => {
 		const clock = new FakeClock();
 		const scheduler = new MotionScheduler(clock);

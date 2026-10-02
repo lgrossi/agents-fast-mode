@@ -186,7 +186,15 @@ export class MotionScheduler {
 	private tick(cadenceMs: number, targets: Map<MotionRenderTarget, TargetRegistration>): void {
 		if (this.paused) return;
 		const nowMs = this.clock.now();
-		for (const [target, registration] of targets) {
+		// Rendering may dispose and remount targets. New mounts belong to the next
+		// tick; iterating the live Map can revisit a remounted target forever.
+		const frame = [...targets].map(([target, registration]) => ({
+			target,
+			registration,
+			callbacks: [...registration.registrations.values()],
+		}));
+		for (const { target, registration, callbacks } of frame) {
+			if (targets.get(target) !== registration) continue;
 			for (const current of registration.registrations.values()) {
 				if (current.expiresAtMs === undefined || nowMs < current.expiresAtMs) continue;
 				registration.registrations.delete(current.id);
@@ -196,14 +204,15 @@ export class MotionScheduler {
 				targets.delete(target);
 				continue;
 			}
-			for (const current of registration.registrations.values()) {
+			for (const current of callbacks) {
+				if (!registration.registrations.has(current.id)) continue;
 				try {
 					current.onFrame?.(nowMs);
 				} catch {
-					registration.registrations.delete(current.id);
-					this.mountCount--;
+					if (registration.registrations.delete(current.id)) this.mountCount--;
 				}
 			}
+			if (targets.get(target) !== registration) continue;
 			if (registration.registrations.size === 0) {
 				targets.delete(target);
 				continue;
@@ -212,9 +221,11 @@ export class MotionScheduler {
 				try {
 					target.requestRender();
 				} catch {
-					this.mountCount -= registration.registrations.size;
-					registration.registrations.clear();
-					targets.delete(target);
+					if (targets.get(target) === registration) {
+						this.mountCount -= registration.registrations.size;
+						registration.registrations.clear();
+						targets.delete(target);
+					}
 				}
 			}
 		}
