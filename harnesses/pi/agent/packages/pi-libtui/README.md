@@ -14,6 +14,13 @@ colors, applies the `harmonious` theme fallback, drives Pi's streaming status
 row, and registers the `/libtui:colors` 256-color palette diagnostic. It
 registers no model-facing tools, keybindings, or feature-specific UI.
 
+The host gives Pi 1.0's native `codemode` and `tool_search` calls compact,
+unpainted framing. Pi still owns their call/result renderers, nested call status,
+output previews, errors, and click-to-expand behavior. Failed calls and calls
+containing terminal images retain Pi's native framing so their error signal and
+image layout remain intact. The versioned bridge fails open on other component
+shapes and restores the native methods when its final host unloads.
+
 ## Preview
 
 The native palette diagnostic and shared picker components in Xsettings.

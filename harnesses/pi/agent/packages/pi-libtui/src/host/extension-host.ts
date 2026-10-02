@@ -11,6 +11,7 @@ import { shutdownPtyHost } from "../terminal/pty-host.ts";
 import { installCursorBridge } from "./cursor-bridge.ts";
 import { installEditorBridge } from "./editor-bridge.ts";
 import { installMouseBridge } from "./mouse-bridge.ts";
+import { installNativeToolBridge } from "./native-tool-bridge.ts";
 import { installSplitPaneBridge } from "./split-pane-bridge.ts";
 import { installUserMessageBridge } from "./user-message-bridge.ts";
 
@@ -175,6 +176,7 @@ function createHostRegistration(): HostRegistration {
 				readonly removeEditorBridge: () => void;
 				readonly removeEditorDecorator: () => void;
 				readonly removeUserMessageBridge: () => void;
+				readonly removeNativeToolBridge: () => void;
 		  }
 		| undefined;
 
@@ -185,6 +187,7 @@ function createHostRegistration(): HostRegistration {
 		session.removeEditorDecorator();
 		session.removeEditorBridge();
 		session.removeUserMessageBridge();
+		session.removeNativeToolBridge();
 		session.ui.setWidget(WIDGET_KEY, undefined);
 	}
 
@@ -204,6 +207,7 @@ function createHostRegistration(): HostRegistration {
 				removeEditorBridge,
 				removeEditorDecorator,
 				removeUserMessageBridge: installUserMessageBridge(),
+				removeNativeToolBridge: installNativeToolBridge(),
 			};
 			// A zero-height widget obtains Pi's stable TUI reference without changing the existing spacer row.
 			ctx.ui.setWidget(WIDGET_KEY, (tui) => new LibtuiHostWidget(tui, ctx.ui));
