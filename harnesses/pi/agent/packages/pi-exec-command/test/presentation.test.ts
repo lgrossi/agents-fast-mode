@@ -889,6 +889,70 @@ describe("exec tool presentation", () => {
 		expect(invalidations).toBe(2);
 	});
 
+	test.each([false, true])(
+		"keeps an exited process settled when Pi replays its yielded result (initial=%s)",
+		(initial) => {
+			const exited = processSnapshot({ state: "exited", exitCode: 0, finishedAtMs: 31_000, output: "finished\n" });
+			const processes = observableRuntime(initial ? [exited] : []);
+			const tool = createExecCommandTool(processes.runtime, TEST_EXEC_COMMAND_PREPARATION_RUNTIME);
+			const args = { cmd: "sleep 30", tty: false };
+			const yielded = createExecToolResult({
+				tool: "exec_command",
+				phase: "final",
+				arguments: normalizeExecCommandArguments(args, "/tmp", "/bin/zsh"),
+				command: args.cmd,
+				result: {
+					chunk_id: "yielded",
+					output: "started\n",
+					session_id: 7,
+					wall_time_seconds: 0.1,
+					output_truncated: false,
+				},
+			});
+			const before = sharedMotionScheduler.activeMountCount;
+			let component = tool.renderResult?.(
+				yielded,
+				{ expanded: false, isPartial: false },
+				theme,
+				context(args, undefined, { isPartial: false }),
+			);
+			const poll = { session_id: 7 };
+			const continuation = createExecToolResult({
+				tool: "write_stdin",
+				phase: "final",
+				arguments: normalizeWriteStdinArguments(poll, false),
+				command: args.cmd,
+				result: {
+					chunk_id: "poll",
+					output: "polling\n",
+					session_id: 7,
+					wall_time_seconds: 0.1,
+					output_truncated: false,
+				},
+			});
+			component = createWriteStdinTool({} as never).renderResult?.(
+				continuation,
+				{ expanded: false, isPartial: false },
+				theme,
+				context(poll, component, { isPartial: false }),
+			);
+			if (!initial) processes.publish([exited]);
+			for (let repaint = 0; repaint < 3; repaint++) {
+				component = tool.renderResult?.(
+					yielded,
+					{ expanded: false, isPartial: false },
+					theme,
+					context(args, component, { isPartial: false }),
+				);
+				const rendered = Bun.stripANSI(component?.render(60).join("\n") ?? "");
+				expect(rendered).toContain("finished");
+				expect(rendered).not.toContain("started");
+				expect(sharedMotionScheduler.activeMountCount).toBe(before);
+			}
+			expect(processes.unsubscribeCount).toBe(1);
+		},
+	);
+
 	test("incorporates the initial process snapshot without re-entering Pi rendering", () => {
 		const processes = observableRuntime([processSnapshot({ output: "first\n" })]);
 		const tool = createExecCommandTool(processes.runtime, TEST_EXEC_COMMAND_PREPARATION_RUNTIME);

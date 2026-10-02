@@ -246,7 +246,7 @@ class ExecPresentation {
 	private readonly continuationOutput = new Map<string, string>();
 	private latestContinuation: ExecToolPresentationDetails | undefined;
 	private output: string;
-	private snapshotOutput: string | undefined;
+	private processSnapshot: ExecProcessSnapshot | undefined;
 	private unsubscribeProcesses: (() => void) | undefined;
 	private subscribedSessionId: number | undefined;
 	private expanded: boolean;
@@ -300,10 +300,22 @@ class ExecPresentation {
 		this.live = live;
 		if (details.outcome.status !== "running") this.stopProcessUpdates();
 		if (details.arguments.kind === "exec_command") {
-			this.execDetails = details;
+			this.execDetails =
+				this.processSnapshot &&
+				details.outcome.status === "running" &&
+				details.identifiers.sessionId === this.processSnapshot.id
+					? snapshotDetails(details, this.processSnapshot)
+					: details;
 			this.output = this.mergedOutput();
-			this.syncProcess(details, processes);
-			if (this.latestContinuation && this.transcript instanceof CommandTranscript) {
+			this.syncProcess(this.execDetails, processes);
+			// Pi may replay the original yielded result after the process exits.
+			// Keep the native snapshot authoritative during that repaint.
+			details = this.execDetails;
+			if (
+				this.latestContinuation &&
+				this.processSnapshot?.state !== "exited" &&
+				this.transcript instanceof CommandTranscript
+			) {
 				const continuation = continuationDetails(details, this.latestContinuation, this.output);
 				this.transcript.update(
 					commandView(continuation, expanded, hostError, live, this.nextOutputRevision(continuation.progress.output)),
@@ -316,7 +328,10 @@ class ExecPresentation {
 			this.continuationOutput.set(key, details.progress.output);
 			this.latestContinuation = details;
 			this.output = this.mergedOutput();
-			const continuation = continuationDetails(this.execDetails, details, this.output);
+			const continuation =
+				this.processSnapshot?.state === "exited"
+					? snapshotDetails(this.execDetails, this.processSnapshot)
+					: continuationDetails(this.execDetails, details, this.output);
 			this.transcript.update(
 				commandView(continuation, expanded, hostError, live, this.nextOutputRevision(continuation.progress.output)),
 			);
@@ -332,7 +347,7 @@ class ExecPresentation {
 
 	private mergedOutput(): string {
 		return (
-			this.snapshotOutput ??
+			this.processSnapshot?.output ??
 			`${this.execDetails?.progress.output ?? ""}${[...this.continuationOutput.values()].join("")}`
 		);
 	}
@@ -360,7 +375,7 @@ class ExecPresentation {
 
 	private acceptProcessSnapshot(snapshot: ExecProcessSnapshot): void {
 		if (!this.execDetails || !(this.transcript instanceof CommandTranscript)) return;
-		this.snapshotOutput = snapshot.output;
+		this.processSnapshot = snapshot;
 		this.execDetails = snapshotDetails(this.execDetails, snapshot);
 		this.output = this.mergedOutput();
 		this.transcript.update(
