@@ -73,6 +73,9 @@ surface text uses black or white instead.
 
 ## Components
 
+`ScrollView` provides a bounded text viewport with keyboard and pointer
+scrolling. Token Burden uses it for long report details.
+
 Captures of the shared components inside the extensions that use them. The
 images are served from the documentation site.
 
