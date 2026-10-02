@@ -29,6 +29,12 @@ without it, the editor opens as a fullscreen overlay.
 In the TUI, run `/xsettings`. Outside the TUI (print, RPC, and other
 non-interactive modes) the command only prints a warning.
 
+Configured `defaultTools` form the session's tool baseline. Startup, resume,
+reload, and branch navigation automatically enable that selection while keeping
+other active tools. Historical tool declarations cannot remove configured tools.
+Pi's explicit tool allowlists and exclusions still limit the available tools.
+Changes take effect on the next turn without rewriting history.
+
 The left sidebar lists eight pages: UI, Editor, UX, Animations, Terminal,
 Behavior, Interaction, and Tools, with each page's sections underneath.
 Extension settings appear under the label the extension registered. The search
@@ -73,6 +79,8 @@ pi.defaultTools = []
 ```
 
 Unknown keys and other top-level tables are kept but not shown in the editor.
+**Startup display** supports Pi 1.0's full, header-only, and hidden startup
+modes, preserving `pi.quietStartup` as `false`, `"header"`, or `true`.
 Writes go to a temporary file followed by a rename; a symlinked path has its
 target written rather than the link. Comments and layout are not preserved. An
 omitted `pi.defaultTools` means "use Pi's default tools"; `pi.defaultTools =
@@ -230,6 +238,7 @@ create a separate settings file or settings screen.
 | Pi setting definitions | `src/config/pi-settings.ts` |
 | `@luan.sh/pi-libtui` and `@luan.sh/pi-xsettings` definitions | `src/config/tui-settings.ts`, `src/config/presentation.ts` |
 | Pi settings reconciliation and file watching | `src/config/pi-settings-sync.ts`, `src/runtime/settings-watch.ts` |
+| Configured tool baseline across session lifecycle | `src/runtime/tool-selection.ts` |
 | Value resolution, publication, reload decision | `src/runtime/settings.ts`, `src/runtime/apply.ts` |
 | Keybinding bridge and effort actions | `src/runtime/actions.ts`, `src/runtime/effort.ts` |
 | Editor session, fields, list editors, screen | `src/ui/` |

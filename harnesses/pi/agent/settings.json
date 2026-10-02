@@ -51,6 +51,9 @@
     "codeBlockIndent": "  ",
     "mermaid": "streaming"
   },
+  "codemode": {
+    "mode": "only"
+  },
   "defaultTools": [
     "new_context",
     "request_user_input_async",

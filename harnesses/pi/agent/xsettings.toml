@@ -77,6 +77,7 @@ pi.steeringMode = "one-at-a-time"
 pi-copy-mode.copyOnSelect = true
 
 [tools]
+pi.codemode.mode = "only"
 pi-codex-native.sendMessageToUserAsync = true
 pi-codex-native.autoReasoning = true
 pi-codex-native.sleepTool = true

@@ -1,6 +1,6 @@
 import type { Component } from "@earendil-works/pi-tui";
 import { getPath, type SettingsRecord } from "../config/store.ts";
-import type { SettingValue } from "../protocol/settings.ts";
+import type { SettingOption, SettingValue } from "../protocol/settings.ts";
 import { type SettingDefinition, type SettingRegistration, settingPath } from "../protocol/settings.ts";
 import { resolveSettingOptions } from "../runtime/options.ts";
 import { resolveSettingValue } from "../runtime/settings.ts";
@@ -101,7 +101,7 @@ export function toUiField(
 	};
 }
 
-export function storedEnumValue(field: EnumSettingField, selectedValue: string): string | number {
+export function storedEnumValue(field: EnumSettingField, selectedValue: string): SettingOption["value"] {
 	const index = field.options.findIndex((option) => option.value === selectedValue);
 	const originalValue = index >= 0 ? field.optionValues?.[index] : undefined;
 	if (originalValue !== undefined) return originalValue;

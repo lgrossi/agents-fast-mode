@@ -108,7 +108,7 @@ export interface EnumSettingField extends SettingFieldBase {
 	defaultValue: string;
 	options: readonly SettingOption[];
 	/** Original values paired with the string values used by the picker. */
-	optionValues?: readonly (number | string)[];
+	optionValues?: readonly ProtocolSettingOption["value"][];
 	optionsFrom?: { fieldId: string; itemField: string };
 }
 

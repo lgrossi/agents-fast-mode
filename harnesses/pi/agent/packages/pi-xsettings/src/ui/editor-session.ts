@@ -4,7 +4,7 @@ import type { DialogHost } from "@luan.sh/pi-libtui";
 import { piSettingDefinitions } from "../config/pi-settings.ts";
 import type { SettingsEdit, SettingsSyncResult } from "../config/pi-settings-sync.ts";
 import { type SettingsRecord, setPath } from "../config/store.ts";
-import type { SettingRegistration, SettingValue, XSettingsRegistry } from "../protocol/settings.ts";
+import type { SettingOption, SettingRegistration, SettingValue, XSettingsRegistry } from "../protocol/settings.ts";
 import { applyLiveTheme, applySavedSettings } from "../runtime/apply.ts";
 import { resolveRegistrationValues } from "../runtime/settings.ts";
 import { storedEnumValue, toUiField } from "./fields.ts";
@@ -22,7 +22,7 @@ export class XSettingsEditorSession {
 		private readonly registry: XSettingsRegistry,
 		private document: SettingsRecord,
 		private readonly fields: readonly SettingsScreenField[],
-		private readonly modelOptions: readonly { value: string | number; label: string; description: string }[],
+		private readonly modelOptions: readonly SettingOption[],
 	) {}
 
 	static async create(

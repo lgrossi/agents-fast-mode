@@ -22,9 +22,10 @@ function validSettingValue(
 	if (definition.type === "multi-enum") return Array.isArray(value) && value.every((item) => typeof item === "string");
 	if (definition.type === "list")
 		return Array.isArray(value) && isSettingValue(value) && checkSchema(definition.schema, value);
-	if (!Array.isArray(definition.options)) return typeof value === "string" || typeof value === "number";
+	if (!Array.isArray(definition.options))
+		return typeof value === "boolean" || typeof value === "string" || typeof value === "number";
 	return (
-		(typeof value === "string" || typeof value === "number") &&
+		(typeof value === "boolean" || typeof value === "string" || typeof value === "number") &&
 		definition.options.some((option) => option.value === value)
 	);
 }
@@ -69,7 +70,7 @@ export function resolveSettingValue(
 	if (definition.type !== "enum") return validSettingValue(definition, configured) ? configured : definition.default;
 	const options = resolveSettingOptions(definition.options, values);
 	if (
-		(typeof configured === "string" || typeof configured === "number") &&
+		(typeof configured === "boolean" || typeof configured === "string" || typeof configured === "number") &&
 		options.some((option) => option.value === configured)
 	)
 		return configured;

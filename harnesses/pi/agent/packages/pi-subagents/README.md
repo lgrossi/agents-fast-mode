@@ -5,7 +5,7 @@ concurrent, nested agents. Each agent runs in its own Pi session and can
 receive follow-up work, direct messages, or an interrupt without blocking
 unrelated agents in the tree.
 
-Requires Pi 0.99.1 or later. SDK sessions load Pi's built-in codemode, Tool
+Requires Pi 1.0.0 or later. SDK sessions load Pi's built-in codemode, Tool
 Search, and MCP extensions and respect their disable settings. Collaboration
 tools stay direct; scripts cannot spawn or control agents.
 

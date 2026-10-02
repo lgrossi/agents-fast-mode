@@ -57,7 +57,7 @@ export type SettingDefinitionInput =
 	| (DefinitionBase & { type: "boolean"; default: boolean })
 	| (DefinitionBase & { type: "string"; default: string })
 	| StringListSettingDefinitionInput
-	| (DefinitionBase & { type: "enum"; default: number | string; options: SettingOptions })
+	| (DefinitionBase & { type: "enum"; default: SettingOption["value"]; options: SettingOptions })
 	| (DefinitionBase & {
 			type: "multi-enum";
 			default: readonly string[];
@@ -69,7 +69,7 @@ export type SettingDefinitionInput =
 type OptionValue<Definition extends SettingDefinitionInput> = Definition extends {
 	options: readonly (infer Option)[];
 }
-	? Option extends { value: infer Value extends number | string }
+	? Option extends { value: infer Value extends SettingOption["value"] }
 		? Value
 		: never
 	: string;
@@ -206,7 +206,7 @@ function resolveValue(
 				: [...definition.default];
 		case "enum": {
 			const options = resolveSettingOptions(definition.options, values);
-			return (typeof value === "string" || typeof value === "number") &&
+			return (typeof value === "boolean" || typeof value === "string" || typeof value === "number") &&
 				options.some((option) => option.value === value)
 				? value
 				: options.some((option) => option.value === definition.default)
@@ -244,9 +244,10 @@ function validValue(definition: SettingDefinitionInput, value: SettingValue | un
 		);
 		return Array.isArray(value) && value.every((entry) => typeof entry === "string" && allowed.has(entry));
 	}
-	if (!Array.isArray(definition.options)) return typeof value === "string" || typeof value === "number";
+	if (!Array.isArray(definition.options))
+		return typeof value === "boolean" || typeof value === "string" || typeof value === "number";
 	return (
-		(typeof value === "string" || typeof value === "number") &&
+		(typeof value === "boolean" || typeof value === "string" || typeof value === "number") &&
 		definition.options.some((option) => option.value === value)
 	);
 }

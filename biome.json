@@ -9,7 +9,9 @@
 			"site/*.ts",
 			"site/*.js",
 			"site/*.css",
-			"!!**/.delta"
+			"!!**/.delta",
+			"!!**/.tmp",
+			"!!target"
 		]
 	},
 	"formatter": {

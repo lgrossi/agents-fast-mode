@@ -45,7 +45,7 @@ export const DEFAULT_MULTI_AGENT_V2_MODEL_OVERRIDE_USAGE_HINT_TEXT =
 export const DEFAULT_MULTI_AGENT_V2_WAIT_AGENT_USAGE_HINT_TEXT =
 	"When calling `wait_agent`, prefer longer waits (minutes) to avoid busy polling.";
 
-export const DEFAULT_MULTI_AGENT_V2_SHARED_USAGE_HINT_TEXT = `Note that collaboration tools cannot be called from inside \`functions.exec\`. Call \`spawn_agent\`, \`send_message\`, \`followup_task\`, \`wait_agent\`, \`interrupt_agent\`, and \`list_agents\` only as direct tool calls using the recipient shown in their tool definitions, such as \`to=functions.collaboration.spawn_agent\`, since they are intentionally absent from the \`functions.exec\` \`tools.*\` namespace. Available tools in \`functions.exec\` are explicitly described with a \`tools\` namespace in the developer message.
+export const DEFAULT_MULTI_AGENT_V2_SHARED_USAGE_HINT_TEXT = `Call \`spawn_agent\`, \`send_message\`, \`followup_task\`, \`wait_agent\`, \`interrupt_agent\`, and \`list_agents\` directly using the tool names shown in their definitions. These model-only collaboration tools are unavailable inside \`codemode\` scripts and its \`tools.*\` namespace.
 
 All agents share the same directory. In detail:
 - All agents have access to the same container and filesystem as you.

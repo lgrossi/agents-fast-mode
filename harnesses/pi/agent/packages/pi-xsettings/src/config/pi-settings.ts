@@ -3,7 +3,7 @@ import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-a
 import { type SettingDefinition, type SettingOption, type SettingValue, settingPath } from "../protocol/settings.ts";
 import { getPath, type SettingsRecord } from "./store.ts";
 
-const option = (value: string | number, label: string, description = ""): SettingOption => ({
+const option = (value: SettingOption["value"], label: string, description = ""): SettingOption => ({
 	value,
 	label,
 	description,
@@ -35,13 +35,14 @@ export const PI_SETTINGS = [
 	},
 	{
 		key: "quietStartup",
-		label: "Quiet startup",
-		description: "Hide the startup header.",
+		label: "Startup display",
+		description: "Show startup details, only the header, or nothing.",
 		category: "appearance",
 		page: "ux",
 		section: "Transcript",
-		type: "boolean",
+		type: "enum",
 		default: false,
+		options: [option(false, "Full"), option("header", "Header only"), option(true, "Hidden")],
 	},
 	{
 		key: "hideThinkingBlock",
@@ -392,8 +393,8 @@ export const PI_SETTINGS = [
 	},
 	{
 		key: "defaultTools",
-		label: "Startup tools",
-		description: "Tools enabled when Pi starts, including codemode and tool_search.",
+		label: "Session tools",
+		description: "Tool baseline applied on startup, resume, reload, and branch navigation.",
 		category: "tools",
 		section: "Tools",
 		type: "multi-enum",

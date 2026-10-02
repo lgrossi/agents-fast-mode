@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { type AssistantMessage, createAssistantMessageEventStream } from "@earendil-works/pi-ai";
@@ -11,8 +11,73 @@ import {
 	SessionManager,
 	SettingsManager,
 } from "@earendil-works/pi-coding-agent";
+import { Type } from "typebox";
 import { readNotes } from "../src/core/state.ts";
 import contextExtension from "../src/extension.ts";
+
+test("reload replaces legacy exec with newly configured built-in codemode", async () => {
+	const root = await mkdtemp(join(tmpdir(), "pi-context-codemode-reload-"));
+	const settingsPath = join(root, "settings.json");
+	let migrated = false;
+	try {
+		await writeFile(settingsPath, JSON.stringify({ defaultTools: [] }));
+		const settings = SettingsManager.create(root, root, { projectTrusted: false });
+		const runtime = await ModelRuntime.create({
+			authPath: join(root, "auth.json"),
+			modelsPath: null,
+			modelsStorePath: join(root, "models.json"),
+			refreshOnCreate: false,
+		});
+		const loader = new DefaultResourceLoader({
+			cwd: root,
+			agentDir: root,
+			settingsManager: settings,
+			noSkills: true,
+			noThemes: true,
+			noContextFiles: true,
+			noPromptTemplates: true,
+			extensionFactories: [
+				{ name: "codemode", factory: createCodemodeExtension(), builtin: true, replaceable: true },
+				contextExtension,
+				(pi) => {
+					if (migrated) return;
+					pi.registerTool({
+						name: "exec",
+						label: "Exec",
+						description: "Legacy code mode fixture",
+						exposure: "model-only",
+						parameters: Type.Object({}),
+						execute: async () => ({ content: [], details: {} }),
+					});
+					pi.on("session_start", () => pi.setActiveTools(["exec"]));
+				},
+			],
+		});
+		await loader.reload();
+		const { session } = await createAgentSession({
+			cwd: root,
+			agentDir: root,
+			settingsManager: settings,
+			modelRuntime: runtime,
+			resourceLoader: loader,
+			sessionManager: SessionManager.inMemory(root),
+		});
+		try {
+			await session.bindExtensions({ mode: "rpc" });
+			expect(session.getActiveToolNames()).toEqual(["exec"]);
+			migrated = true;
+			await writeFile(settingsPath, JSON.stringify({ defaultTools: ["codemode", "notes__read_file"] }));
+			await session.reload();
+			expect(session.getActiveToolNames()).toContain("codemode");
+			expect(session.getActiveToolNames()).not.toContain("exec");
+			expect(session.getCallableToolNames()).toContain("notes__read_file");
+		} finally {
+			await session.dispose();
+		}
+	} finally {
+		await rm(root, { recursive: true, force: true });
+	}
+});
 
 test("built-in codemode preserves note results and enforces nested tool policy", async () => {
 	const root = await mkdtemp(join(tmpdir(), "pi-context-codemode-"));

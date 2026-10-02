@@ -1,7 +1,7 @@
 # pi-context-windows
 
 Recoverable context windows, searchable history, and working notes for Pi.
-Requires Pi 0.99.1 or later. Uses public Pi APIs; no Pi fork or remote history
+Requires Pi 1.0.0 or later. Uses public Pi APIs; no Pi fork or remote history
 service is required.
 
 ## Install

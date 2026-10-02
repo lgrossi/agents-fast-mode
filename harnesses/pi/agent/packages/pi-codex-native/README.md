@@ -50,9 +50,9 @@ needed. Check the provider without starting a session with:
 pi auth check --provider openai-codex
 ```
 
-Requires Pi 0.99.1 or later. Model availability, prices, reasoning levels,
+Requires Pi 1.0.0 or later. Model availability, prices, reasoning levels,
 compatibility flags, and image profiles come from Pi's built-in OpenAI Codex
-catalog. With Pi 0.99.1 this includes GPT-6.1 Sol, GPT-6 Sol, Astra, and Luna,
+catalog. With Pi 1.0.0 this includes GPT-6.1 Sol, GPT-6 Sol, Astra, and Luna,
 and excludes retired GPT-5.4 entries.
 Catalog updates no longer require a second model table in this extension.
 

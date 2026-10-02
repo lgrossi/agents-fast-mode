@@ -28,6 +28,7 @@ import {
 } from "./runtime/session-settings.ts";
 import { publishAllSettings, resolveRegistrationValues } from "./runtime/settings.ts";
 import { watchSettings } from "./runtime/settings-watch.ts";
+import { applyConfiguredTools } from "./runtime/tool-selection.ts";
 import { XSettingsEditorSession } from "./ui/editor-session.ts";
 import type { XSettingsScreen } from "./ui/xsettings-screen.ts";
 
@@ -232,6 +233,7 @@ export default function xsettingsExtension(pi: ExtensionAPI): void {
 		await initialization;
 		await settleRegistrations();
 		await reconcile();
+		applyConfiguredTools(pi);
 		reportSync(syncNotice);
 		if (ctx.mode !== "tui" || !ctx.hasUI) return;
 		panelContext = ctx;
@@ -283,6 +285,7 @@ export default function xsettingsExtension(pi: ExtensionAPI): void {
 			);
 		}
 	});
+	pi.on("session_tree", () => applyConfiguredTools(pi));
 	pi.on("before_agent_start", async (_event, ctx) => {
 		const document = sessionSettingsDocument(registry, await store.load(), ctx.sessionManager.getBranch());
 		publishSessionSettings(registry, ctx.sessionManager.getSessionId(), document);

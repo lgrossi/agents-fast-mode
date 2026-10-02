@@ -20,7 +20,7 @@ export type SettingApply = "live" | "reload";
 export type SettingValue = boolean | number | string | SettingValue[] | { [key: string]: SettingValue };
 
 export interface SettingOption {
-	value: number | string;
+	value: boolean | number | string;
 	label: string;
 	description: string;
 	color?: TuiForegroundColor;
@@ -89,7 +89,7 @@ export type SettingDefinition =
 	| (SettingDefinitionBase & { type: "boolean"; default: boolean })
 	| (SettingDefinitionBase & { type: "string"; default: string })
 	| (SettingDefinitionBase & { type: "string-list"; default: string[]; minItems: number })
-	| (SettingDefinitionBase & { type: "enum"; default: number | string; options: SettingOptions })
+	| (SettingDefinitionBase & { type: "enum"; default: SettingOption["value"]; options: SettingOptions })
 	| (SettingDefinitionBase & {
 			type: "multi-enum";
 			default: string[];

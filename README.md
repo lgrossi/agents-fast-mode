@@ -85,9 +85,12 @@ Use `Alt+P` for Pi's model picker and `Alt+,` / `Alt+.` to decrease or increase
 reasoning effort. Subagents inherit the parent's model and effort unless a
 spawn supplies direct overrides.
 
-The managed harness requires Pi 0.99.1 or later and uses its built-in `codemode`,
-`tool_search`, and MCP support. `pi.defaultTools` selects tools; `codemode.mode`
-defaults to `on`, keeping direct tools available alongside JavaScript batching.
+The managed harness requires Pi 1.0.0 or later and uses its built-in `codemode`,
+`tool_search`, and MCP support. `pi.defaultTools` selects tools; the managed
+`codemode.mode = "only"` routes callable tools through JavaScript scripts.
+Configured tools are restored automatically on session startup, resume, reload,
+and branch navigation.
+Pi 0.99.2 fixes activation of newly configured default tools during `/reload`.
 MCP servers belong in Pi's `mcp.json` and are managed with `/mcp` or `pi mcp`.
 
 Scripts use `tools.*`, `text()`, `image()`, `store()`/`load()`, and

@@ -13,6 +13,41 @@ afterEach(() => {
 });
 
 describe("structural registries", () => {
+	test("typed enums preserve boolean choices and reject unlisted scalar values", async () => {
+		const client = createSettings({
+			namespace: "startup",
+			label: "Startup",
+			definitions: {
+				mode: {
+					label: "Mode",
+					description: "Startup display.",
+					category: "appearance",
+					type: "enum",
+					default: false,
+					options: [
+						{ value: false, label: "Full", description: "" },
+						{ value: true, label: "Hidden", description: "" },
+						{ value: "header", label: "Header only", description: "" },
+					],
+				},
+			},
+		});
+		const unregister = client.register();
+		try {
+			const registry = ensureXSettingsRegistry();
+			for (const value of [false, true, "header"] as const) {
+				await registry.publish("startup", { mode: value });
+				expect(client.get().mode).toBe(value);
+			}
+			for (const value of ["true", 1, []]) {
+				await registry.publish("startup", { mode: value });
+				expect(client.get().mode).toBe(false);
+			}
+		} finally {
+			unregister();
+		}
+	});
+
 	test("delivers values when the extension registers before the settings host", async () => {
 		const received: unknown[] = [];
 		const registry = ensureXSettingsRegistry();

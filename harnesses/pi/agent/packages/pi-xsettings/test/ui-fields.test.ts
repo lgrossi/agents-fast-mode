@@ -3,12 +3,23 @@ import { initTheme, type Theme } from "@earendil-works/pi-coding-agent";
 import { KeybindingsManager, setKeybindings, stripTerminalSequences, TUI_KEYBINDINGS } from "@earendil-works/pi-tui";
 import { tuiTheme } from "@luan.sh/pi-libtui";
 import { Type } from "typebox";
+import { PI_SETTINGS } from "../src/config/pi-settings.ts";
 import type { SettingDefinition, SettingRegistration, SettingValue } from "../src/protocol/settings.ts";
 import { storedEnumValue, toUiField } from "../src/ui/fields.ts";
 import { formatSettingValue } from "../src/ui/settings-editor.ts";
 import { type SettingsScreenField, XSettingsScreen } from "../src/ui/xsettings-screen.ts";
 
 describe("settings screen fields", () => {
+	test.each([false, true, "header"] as const)("preserves quiet startup %s through the picker", (value) => {
+		const definition = PI_SETTINGS.find((setting) => setting.key === "quietStartup");
+		if (!definition) throw new Error("missing quiet startup setting");
+		const field = toUiField({ appearance: { pi: { quietStartup: value } } }, undefined, definition);
+		expect(field.type).toBe("enum");
+		if (field.type !== "enum") throw new Error("expected startup choices");
+		expect(field.value).toBe(String(value));
+		expect(storedEnumValue(field, field.value)).toBe(value);
+	});
+
 	const theme = {
 		bold: (text: string) => text,
 		fg: (_color: string, text: string) => text,

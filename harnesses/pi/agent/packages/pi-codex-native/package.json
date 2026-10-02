@@ -25,10 +25,10 @@
     "video": "https://pi.luan.sh/media/previews/pi-codex-native-38742cb8baf1.mp4"
   },
   "peerDependencies": {
-    "@earendil-works/pi-ai": ">=0.87.1",
-    "@earendil-works/pi-agent-core": ">=0.87.1",
-    "@earendil-works/pi-coding-agent": ">=0.99.1",
-    "@earendil-works/pi-tui": ">=0.87.1",
+    "@earendil-works/pi-ai": ">=1.0.0",
+    "@earendil-works/pi-agent-core": ">=1.0.0",
+    "@earendil-works/pi-coding-agent": ">=1.0.0",
+    "@earendil-works/pi-tui": ">=1.0.0",
     "typebox": "*"
   },
   "dependencies": {
@@ -47,10 +47,10 @@
     "@luan.sh/pi-developer-messages"
   ],
   "devDependencies": {
-    "@earendil-works/pi-agent-core": "0.99.1",
-    "@earendil-works/pi-ai": "0.99.1",
-    "@earendil-works/pi-coding-agent": "0.99.1",
-    "@earendil-works/pi-tui": "0.99.1",
+    "@earendil-works/pi-agent-core": "1.0.0",
+    "@earendil-works/pi-ai": "1.0.0",
+    "@earendil-works/pi-coding-agent": "1.0.0",
+    "@earendil-works/pi-tui": "1.0.0",
     "@types/bun": "^1.3.0",
     "typescript": "^6.0.3"
   },
