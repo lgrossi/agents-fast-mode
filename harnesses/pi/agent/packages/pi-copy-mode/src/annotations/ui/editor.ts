@@ -38,7 +38,7 @@ export class AnnotationEditor extends SemanticEditor {
 
 	constructor(
 		tui: TUI,
-		private readonly semanticTheme: Theme,
+		semanticTheme: Theme,
 		private readonly appKeys: KeybindingsManager,
 		private readonly store: AnnotationStore,
 		private readonly onHover?: ComposerHoverListener,

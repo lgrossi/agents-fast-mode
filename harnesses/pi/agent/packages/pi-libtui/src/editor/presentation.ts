@@ -24,7 +24,7 @@ export function semanticEditorTheme(theme: Theme): EditorTheme {
 /** Pi's extensible editor with all native color roles owned by pi-libtui. */
 export class SemanticEditor extends CustomEditor {
 	private status: Parameters<CustomEditor["setWorkingStatusIndicator"]>[0];
-	private readonly semanticTheme: Theme;
+	protected readonly semanticTheme: Theme;
 
 	override setWorkingStatusIndicator(indicator: Parameters<CustomEditor["setWorkingStatusIndicator"]>[0]): void {
 		this.status = indicator;
