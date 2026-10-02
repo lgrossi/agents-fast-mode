@@ -6,7 +6,7 @@ The useful part is under `harnesses/pi/agent/packages`: thirteen Pi extensions, 
 
 ## Set up
 
-You need Rust, Bun 1.3.14, [`just`](https://github.com/casey/just), and Pi.
+You need Rust, Bun 1.4.0, [`just`](https://github.com/casey/just), and Pi.
 
 The voice host links against the system Opus library, which it finds through `pkg-config`. Without `pkg-config`, the build falls back to Opus's bundled CMake project, and CMake 4 rejects that project. On macOS, run `brew install opus pkgconf`. On Linux, also install the ALSA headers (`libasound2-dev`).
 
