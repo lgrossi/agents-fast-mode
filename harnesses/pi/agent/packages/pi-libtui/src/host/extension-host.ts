@@ -12,6 +12,7 @@ import { installCursorBridge } from "./cursor-bridge.ts";
 import { installEditorBridge } from "./editor-bridge.ts";
 import { installMouseBridge } from "./mouse-bridge.ts";
 import { installNativeToolBridge } from "./native-tool-bridge.ts";
+import { NestedToolResults } from "./nested-tool-results.ts";
 import { installSplitPaneBridge } from "./split-pane-bridge.ts";
 import { installUserMessageBridge } from "./user-message-bridge.ts";
 
@@ -30,12 +31,16 @@ class LibtuiHostWidget implements Component {
 	private terminalColorsReady = false;
 	private fallbackTheme: Theme | undefined;
 	private disposed = false;
+	private readonly removeNativeToolBridge: () => void;
 
 	constructor(
 		private readonly tui: TUI,
 		private readonly ui: ExtensionContext["ui"],
+		nested: NestedToolResults,
+		history: ExtensionContext["sessionManager"]["getBranch"],
 	) {
 		this.mode = tui.mode;
+		this.removeNativeToolBridge = installNativeToolBridge(tui, nested, history);
 		this.removeMouseBridge = installMouseBridge(tui, ensureMouseRegistry());
 		this.removeCursorBridge = installCursorBridge(tui);
 		this.removeSplitPaneBridge = installSplitPaneBridge(
@@ -86,6 +91,7 @@ class LibtuiHostWidget implements Component {
 	dispose(): void {
 		this.disposed = true;
 		this.removeMouseBridge();
+		this.removeNativeToolBridge();
 		this.removeCursorBridge();
 		this.removeSplitPaneBridge();
 		this.removeAppearanceSubscription();
@@ -118,6 +124,7 @@ class LibtuiHostWidget implements Component {
 
 interface HostRegistration {
 	readonly protocol: typeof HOST_PROTOCOL;
+	readonly nested: NestedToolResults;
 	start(ctx: ExtensionContext): void;
 	shutdown(ctx: ExtensionContext, preservePtys: boolean): Promise<void>;
 }
@@ -169,6 +176,7 @@ function hostIdentity(pi: ExtensionAPI): object {
 
 function createHostRegistration(): HostRegistration {
 	const editorRegistry = ensureEditorRegistry();
+	const nested = new NestedToolResults();
 	let activeSession:
 		| {
 				readonly sessionManager: ExtensionContext["sessionManager"];
@@ -176,7 +184,6 @@ function createHostRegistration(): HostRegistration {
 				readonly removeEditorBridge: () => void;
 				readonly removeEditorDecorator: () => void;
 				readonly removeUserMessageBridge: () => void;
-				readonly removeNativeToolBridge: () => void;
 		  }
 		| undefined;
 
@@ -187,12 +194,12 @@ function createHostRegistration(): HostRegistration {
 		session.removeEditorDecorator();
 		session.removeEditorBridge();
 		session.removeUserMessageBridge();
-		session.removeNativeToolBridge();
 		session.ui.setWidget(WIDGET_KEY, undefined);
 	}
 
 	return {
 		protocol: HOST_PROTOCOL,
+		nested,
 		start(ctx) {
 			if (ctx.mode !== "tui" || !ctx.hasUI) return;
 			clearSession();
@@ -207,10 +214,12 @@ function createHostRegistration(): HostRegistration {
 				removeEditorBridge,
 				removeEditorDecorator,
 				removeUserMessageBridge: installUserMessageBridge(),
-				removeNativeToolBridge: installNativeToolBridge(),
 			};
 			// A zero-height widget obtains Pi's stable TUI reference without changing the existing spacer row.
-			ctx.ui.setWidget(WIDGET_KEY, (tui) => new LibtuiHostWidget(tui, ctx.ui));
+			ctx.ui.setWidget(
+				WIDGET_KEY,
+				(tui) => new LibtuiHostWidget(tui, ctx.ui, nested, () => ctx.sessionManager.getBranch()),
+			);
 		},
 		async shutdown(ctx, preservePtys) {
 			if (ctx.mode !== "tui" || !ctx.hasUI || activeSession?.sessionManager !== ctx.sessionManager) return;
@@ -221,6 +230,7 @@ function createHostRegistration(): HostRegistration {
 }
 
 export interface LibtuiExtensionHost {
+	readonly nested: NestedToolResults;
 	start(ctx: ExtensionContext): void;
 	shutdown(ctx: ExtensionContext, preservePtys: boolean): Promise<void>;
 	release(): void;
@@ -235,6 +245,7 @@ export function claimLibtuiExtensionHost(pi: ExtensionAPI): LibtuiExtensionHost 
 	const registration = createHostRegistration();
 	capability.set(key, registration);
 	return {
+		nested: registration.nested,
 		start: (ctx) => registration.start(ctx),
 		shutdown: (ctx, preservePtys) => registration.shutdown(ctx, preservePtys),
 		release() {

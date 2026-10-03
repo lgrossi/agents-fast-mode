@@ -13,14 +13,28 @@ import {
 	ToolExecutionComponent,
 } from "@earendil-works/pi-coding-agent";
 import { ProcessTerminal, stripTerminalSequences, TuiAltScreen, visibleWidth } from "@earendil-works/pi-tui";
-import { installNativeToolBridge } from "../src/host/native-tool-bridge.ts";
+import {
+	type CodeModePresentation,
+	nativeOrchestrationRenderers,
+	type PresentationHost,
+} from "../src/host/codemode-presentation.ts";
+import { NestedToolResults, readNestedPresentation } from "../src/host/nested-tool-results.ts";
+import { ToolActivity } from "../src/tool/activity.ts";
 
-const disposers: Array<() => void> = [];
 const tui = new TuiAltScreen(new ProcessTerminal());
 let root: string;
 let definitions: Map<string, ToolDefinition>;
+const views: CodeModePresentation[] = [];
+const renders: Array<{ details: object; partial: boolean; failed: boolean }> = [];
+const host: PresentationHost = {
+	tui,
+	nested: new NestedToolResults(),
+	definition: (name) => definitions.get(name),
+	history: () => undefined,
+	track: (view) => views.push(view),
+};
 beforeAll(async () => {
-	root = await mkdtemp(join(tmpdir(), "pi-native-tool-framing-"));
+	root = await mkdtemp(join(tmpdir(), "pi-native-presentation-"));
 	const loader = new DefaultResourceLoader({
 		cwd: root,
 		agentDir: root,
@@ -29,7 +43,36 @@ beforeAll(async () => {
 		noThemes: true,
 		noContextFiles: true,
 		noPromptTemplates: true,
-		extensionFactories: [createCodemodeExtension(), createToolSearchExtension()],
+		extensionFactories: [
+			createCodemodeExtension(),
+			createToolSearchExtension(),
+			(pi) =>
+				pi.registerTool({
+					name: "fixture",
+					label: "fixture",
+					description: "A tool with its own presentation",
+					parameters: createReadToolDefinition(root).parameters,
+					renderShell: "self",
+					execute: async () => ({
+						content: [{ type: "text", text: "READABLE OUTPUT" }],
+						details: { label: "Rendered by the tool", body: "READABLE OUTPUT" },
+					}),
+					renderResult(result, options, theme, context) {
+						renders.push({ details: result.details, partial: options.isPartial, failed: context.isError });
+						return ToolActivity.reuse(context.lastComponent, {
+							theme,
+							requestRender: context.invalidate,
+							view: {
+								action: {
+									verb: result.details.label,
+									status: context.isError ? "failed" : options.isPartial ? "running" : "succeeded",
+								},
+								payload: { kind: "text", text: result.details.body, revision: 0 },
+							},
+						});
+					},
+				}),
+		],
 	});
 	await loader.reload();
 	expect(loader.getExtensions().errors).toEqual([]);
@@ -42,109 +85,115 @@ beforeAll(async () => {
 afterAll(async () => {
 	await rm(root, { recursive: true, force: true });
 });
-beforeEach(() => initTheme("dark", false));
-afterEach(() => {
-	for (const dispose of disposers.splice(0)) dispose();
+beforeEach(() => {
+	initTheme("dark", false);
+	renders.length = 0;
 });
-
-function codemode(code = "text(ALL_TOOLS.map(({ name }) => name));") {
-	return new ToolExecutionComponent("codemode", "script", { code }, {}, definitions.get("codemode"), tui, "/tmp");
+afterEach(() => {
+	for (const view of views.splice(0)) view.dispose();
+});
+function parent() {
+	return new ToolExecutionComponent(
+		"codemode",
+		"script",
+		{ code: 'text(await tools.fixture({path:"example.ts"}));' },
+		{},
+		nativeOrchestrationRenderers("codemode", host),
+		tui,
+		"/tmp",
+	);
 }
-
-test.each([40, 80, 160])("native codemode keeps bounded, unpainted previews at %i columns", (width) => {
-	disposers.push(installNativeToolBridge());
-	const component = codemode();
-	component.updateResult({
+function result(status: "running" | "succeeded" | "failed") {
+	return {
 		content: [
-			{ type: "text", text: "Script completed\nWall time 0.1 seconds\nOutput:\n" },
-			{ type: "text", text: JSON.stringify(Array.from({ length: 300 }, (_, i) => `tool_${i}`)) },
+			{
+				type: "text",
+				text: 'Script completed\nWall time 0.1 seconds\nOutput:\n{"chunk_id":"raw","output":"READABLE OUTPUT"}',
+			},
 		],
-		details: { calls: [{ id: "script/1", name: "exec_command", args: '{"cmd":"pwd"}', status: "ok", durationMs: 10 }] },
-		isError: false,
-	});
+		details: {
+			libtuiNestedCalls: {
+				version: 1,
+				omitted: 0,
+				calls: [
+					{
+						id: "script/1",
+						name: "fixture",
+						args: { path: "example.ts" },
+						status,
+						result: {
+							content: [{ type: "text", text: "READABLE OUTPUT" }],
+							details: { label: "Rendered by the tool", body: "READABLE OUTPUT" },
+							isError: status === "failed",
+						},
+					},
+				],
+			},
+		},
+		isError: status === "failed",
+	};
+}
+test.each([40, 80, 160])("nested tool presentation replaces JavaScript and wrapper JSON at %i columns", (width) => {
+	const component = parent();
+	component.updateResult(result("succeeded"));
 	const lines = component.render(width);
 	const text = lines.map(stripTerminalSequences).join("\n");
+	expect(text).toContain("Rendered by the tool");
+	expect(text).toContain("READABLE OUTPUT");
+	expect(text).not.toContain("tools.fixture");
+	expect(text).not.toContain("chunk_id");
 	expect(lines.every((line) => visibleWidth(line) <= width)).toBe(true);
-	expect(lines.join("\n")).not.toMatch(/\x1b\[(?:48|4[0-7]);?[^m]*m/);
-	expect(text).toContain("exec_command");
-	expect(text).toContain("pwd");
-	expect(text).toContain("more lines");
-	expect(text).not.toContain("Script completed");
-	expect(lines.length).toBeLessThanOrEqual(12);
+	expect(renders.at(-1)).toEqual({
+		details: { label: "Rendered by the tool", body: "READABLE OUTPUT" },
+		partial: false,
+		failed: false,
+	});
 	component.setExpanded(true);
-	expect(component.render(width).length).toBeGreaterThan(lines.length);
+	const expanded = component.render(width).map(stripTerminalSequences).join("\n");
+	expect(expanded).toContain("tools.fixture");
+	expect(expanded).toContain("chunk_id");
 });
-
-test("native tool search keeps its result and click-to-expand at the compact row coordinates", () => {
+test("partial and failed nested results reach the same tool renderer", () => {
+	const component = parent();
+	component.updateResult(result("running"), true);
+	component.render(80);
+	expect(renders.at(-1)?.partial).toBe(true);
+	component.updateResult(result("failed"));
+	component.render(80);
+	expect(renders.at(-1)?.failed).toBe(true);
+});
+test("historical calls without saved results never invent a failed result", () => {
+	const component = parent();
+	component.updateResult({
+		content: [],
+		details: { calls: [{ id: "old/1", name: "fixture", args: '{"path":"example.ts"}', status: "ok" }] },
+		isError: false,
+	});
+	expect(component.render(80).map(stripTerminalSequences).join("\n")).toContain("fixture");
+	expect(renders).toEqual([]);
+});
+test("invalid persisted presentation metadata is rejected", () => {
+	expect(
+		readNestedPresentation({
+			version: 1,
+			omitted: 0,
+			calls: [{ id: "id", name: "fixture", status: "bogus", args: {} }],
+		}),
+	).toBeUndefined();
+});
+test("native tool discovery uses the shared action and output presentation", () => {
 	const component = new ToolExecutionComponent(
 		"tool_search",
 		"search",
 		{ query: "filesystem shell" },
 		{},
-		definitions.get("tool_search"),
+		nativeOrchestrationRenderers("tool_search", host),
 		tui,
 		"/tmp",
 	);
-	component.updateResult({
-		content: [{ type: "text", text: Array.from({ length: 15 }, (_, i) => `result ${i}`).join("\n") }],
-		isError: false,
-	});
-	const native = component.render(80);
-	disposers.push(installNativeToolBridge());
-	const compact = component.render(80);
-	expect(compact.length).toBe(native.length - 2);
-	expect(compact.map(stripTerminalSequences).join("\n")).toContain("result 0");
-	expect(
-		component.handleMouse({
-			type: "click",
-			button: "left",
-			x: 0,
-			y: 2,
-			screenX: 0,
-			screenY: 2,
-			shift: false,
-			alt: false,
-			ctrl: false,
-			width: 80,
-			height: compact.length,
-		})?.handled,
-	).toBe(true);
-	expect(component.render(80).map(stripTerminalSequences).join("\n")).toContain("result 14");
-});
-
-test("independent host leases restore native framing", () => {
-	const component = codemode("text('done');");
-	component.updateResult({
-		content: [{ type: "text", text: "done" }],
-		details: { calls: [] },
-		isError: false,
-	});
-	const native = component.render(80);
-	const first = installNativeToolBridge();
-	const second = installNativeToolBridge();
-	disposers.push(first, second);
-	const compact = component.render(80);
-	expect(compact.length).toBeLessThan(native.length);
-	first();
-	first();
-	expect(component.render(80)).toEqual(compact);
-	second();
-	expect(component.render(80)).toEqual(native);
-});
-
-test.each(["codemode", "tool_search"])("%s errors keep Pi's visible failure feedback", (name) => {
-	const component = new ToolExecutionComponent(name, "failed", {}, {}, definitions.get(name), tui, "/tmp");
-	component.updateResult({ content: [{ type: "text", text: "Execution failed" }], isError: true });
-	const native = component.render(80);
-	disposers.push(installNativeToolBridge());
-	expect(component.render(80)).toEqual(native);
-	expect(native.map(stripTerminalSequences).join("\n")).toContain("Execution failed");
-});
-
-test("ordinary feature tool framing stays owned by its renderer", () => {
-	const definition = createReadToolDefinition("/tmp");
-	const component = new ToolExecutionComponent("read", "read", { path: "file.ts" }, {}, definition, tui, "/tmp");
-	const native = component.render(80);
-	disposers.push(installNativeToolBridge());
-	expect(component.render(80)).toEqual(native);
+	component.updateResult({ content: [{ type: "text", text: "No matching tools found." }], isError: false });
+	const text = component.render(80).map(stripTerminalSequences).join("\n");
+	expect(text).toContain("Search tools");
+	expect(text).toContain("filesystem shell");
+	expect(text).toContain("No matching tools found.");
 });

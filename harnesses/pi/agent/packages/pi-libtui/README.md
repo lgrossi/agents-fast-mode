@@ -14,12 +14,22 @@ colors, applies the `harmonious` theme fallback, drives Pi's streaming status
 row, and registers the `/libtui:colors` 256-color palette diagnostic. It
 registers no model-facing tools, keybindings, or feature-specific UI.
 
-The host gives Pi 1.0's native `codemode` and `tool_search` calls compact,
-unpainted framing. Pi still owns their call/result renderers, nested call status,
-output previews, errors, and click-to-expand behavior. Failed calls and calls
-containing terminal images retain Pi's native framing so their error signal and
-image layout remain intact. The versioned bridge fails open on other component
-shapes and restores the native methods when its final host unloads.
+The host presents Pi 1.0's native `codemode` calls through each nested tool's
+registered renderer: shell transcripts remain shell transcripts, and patches
+remain diffs. The normal view hides the orchestration script and wrapper JSON;
+expanding the call reveals both. `tool_search` uses the shared action and output
+presentation. Pi still owns execution, policy hooks, and terminal images.
+
+Public nested execution events supply streaming results. Bounded presentation
+metadata is saved in the parent result's details so reload and resume retain the
+same tool views without changing model-facing content. Older native transcripts
+have no saved nested results; they show the recorded call status and arguments,
+with the original script output available through expansion.
+
+Pi 1.0 has no separate tool-renderer registration API, so a versioned bridge
+leases its interactive renderer lookup and refreshes history after attaching on
+reload. It fails open when the lookup is absent and restores the original lookup
+when its final host unloads.
 
 ## Preview
 
@@ -72,6 +82,11 @@ intact. If the generated palette cannot provide readable contrast, button and
 surface text uses black or white instead.
 
 ## Components
+
+`ComponentStack` composes child components vertically by default. Pass
+`{ direction: "horizontal", gap }` for equal-width columns; spans expose both
+`row` and `col`, and pointer events are translated to the selected child. Use
+`maxHeight` (or `height`) to bound either layout.
 
 Captures of the shared components inside the extensions that use them. The
 images are served from the documentation site.
