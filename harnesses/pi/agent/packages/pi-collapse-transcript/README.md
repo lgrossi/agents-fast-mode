@@ -42,6 +42,9 @@ its work on `session_start`:
   that mounts a transcript projection over Pi's chat container.
 - `agent_start` keeps new entries visible until `agent_settled`, including retries
   and automatic continuations. Finishing an individual tool or model request does not fold anything.
+- A queued user request consumed after a final answer folds the preceding request,
+  even when Pi continues without `agent_settled`. Steering during unfinished work
+  keeps that work visible.
 - In fullscreen mode, completed consecutive `thinking` and tool entries become one
   `ActivitySection`. Its header shows `Worked for <duration> · summary`, a `N steps` count, and
   `M failed` when any tool in the run failed. It has no status dot or spinner.

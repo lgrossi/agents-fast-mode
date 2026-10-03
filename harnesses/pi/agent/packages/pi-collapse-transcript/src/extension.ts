@@ -8,6 +8,20 @@ export default function transcriptExtension(pi: ExtensionAPI): void {
 	let transcript: ActivityTranscript | undefined;
 	pi.on("agent_start", () => transcript?.beginTurn());
 	pi.on("agent_settled", () => transcript?.finishTurn());
+	pi.on("message_start", (event, ctx) => {
+		if (event.message.role !== "user") return;
+		const previous = ctx.sessionManager
+			.getBranch()
+			.filter(
+				(entry) => entry.type === "message" && (entry.message.role === "assistant" || entry.message.role === "user"),
+			)
+			.at(-1);
+		if (previous?.type !== "message" || previous.message.role !== "assistant" || previous.message.stopReason !== "stop")
+			return;
+		// Queued requests can follow a final answer without agent_settled between them.
+		transcript?.finishTurn();
+		transcript?.beginTurn();
+	});
 	pi.on("session_start", (_event, ctx) => {
 		unmount?.();
 		unmount = undefined;
