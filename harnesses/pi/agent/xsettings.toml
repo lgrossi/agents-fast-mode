@@ -59,7 +59,7 @@ pi.compaction.enabled = true
 pi.compaction.reserveTokens = 16384
 pi.compaction.keepRecentTokens = 20000
 pi.branchSummary.skipPrompt = false
-pi.enabledModels = [ "openai-codex/gpt-6-astra", "openai-codex/gpt-6-luna", "openai-codex/gpt-6.1-sol", "openai-codex/gpt-6-sol" ]
+pi.enabledModels = [ "openai-codex/gpt-6-luna", "openai-codex/gpt-6-astra", "openai-codex/gpt-6.1-sol", "fireworks/accounts/fireworks/models/deepseek-v4p1-flash" ]
 pi.retry.maxRetries = 5
 pi-codex-native.cacheDiagnostics = "status"
 pi-codex-native.fallbackCompaction = false
@@ -78,10 +78,10 @@ pi-copy-mode.copyOnSelect = true
 
 [tools]
 pi.codemode.mode = "only"
+pi.defaultTools = [ "new_context", "request_user_input_async", "send_message_to_user_async", "clock__sleep", "clock__curr_time", "image_gen__imagegen", "codemode", "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image", "get_context_remaining", "history__list_windows", "history__list_items", "history__read_item", "history__search_contents", "notes__list_files_by_prefix", "notes__read_file", "notes__search_contents", "notes__append_to_file", "notes__write_file" ]
 pi-codex-native.sendMessageToUserAsync = true
 pi-codex-native.autoReasoning = true
 pi-codex-native.sleepTool = true
 pi-codex-native.sleepToolMode = "model_driven"
-pi.defaultTools = [ "new_context", "request_user_input_async", "send_message_to_user_async", "clock__sleep", "clock__curr_time", "image_gen__imagegen", "codemode", "skill", "web__run", "exec_command", "write_stdin", "tool_search", "apply_patch", "view_image", "get_context_remaining", "history__list_windows", "history__list_items", "history__read_item", "history__search_contents", "notes__list_files_by_prefix", "notes__read_file", "notes__search_contents", "notes__append_to_file", "notes__write_file" ]
 pi-skills.catalogVisibility = "when-active"
 pi-view-image.descriptionModel = "openai-codex/gpt-6-luna"
