@@ -1,7 +1,7 @@
 {
   "enableInstallTelemetry": false,
   "defaultProjectTrust": "always",
-  "lastChangelogVersion": "0.87.1",
+  "lastChangelogVersion": "1.0.0",
   "defaultProvider": "openai-codex",
   "defaultModel": "gpt-6-luna",
   "defaultThinkingLevel": "medium",
@@ -91,10 +91,10 @@
     "anthropicExtraUsage": false
   },
   "enabledModels": [
-    "openai-codex/gpt-6-astra",
     "openai-codex/gpt-6-luna",
+    "openai-codex/gpt-6-astra",
     "openai-codex/gpt-6.1-sol",
-    "openai-codex/gpt-6-sol"
+    "fireworks/accounts/fireworks/models/deepseek-v4p1-flash"
   ],
   "hideThinkingBlock": true,
   "retry": {
